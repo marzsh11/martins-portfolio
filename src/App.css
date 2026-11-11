@@ -1,5 +1,5 @@
 .portfolio {
-  /* Fluid sizes use the 85rem Figma frame as their upper reference. */
+
   --side-padding: clamp(1.25rem, 2.647vw, 1.75rem);
   --page-bg: rgba(10, 10, 10, 0.8);
   --page-fg: #fff;
@@ -60,27 +60,6 @@
 
 .primary-nav a, .brand, .contact { transition: opacity 160ms ease; }
 .primary-nav a:hover, .brand:hover { opacity: 0.68; }
-.primary-nav a {
-  position: relative;
-}
-
-.primary-nav a::after {
-  position: absolute;
-  top: calc(100% + 0.375rem);
-  left: 50%;
-  width: clamp(3rem, 4.706vw, 4rem);
-  height: 0.0625rem;
-  content: '';
-  transform: translateX(-50%);
-  background: var(--rule);
-  opacity: 0;
-  transition: opacity 2s ease, background-color 2s ease;
-}
-
-.primary-nav a:hover::after,
-.primary-nav a:focus-visible::after {
-  opacity: 1;
-}
 
 .contact {
   position: relative;
@@ -111,6 +90,17 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
+}
+
+.nav-rule {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: clamp(3rem, 4.706vw, 4rem);
+  height: 0.0625rem;
+  transform: translateX(-50%);
+  background: var(--rule);
+  transition: background-color 2s ease;
 }
 
 .site-footer {
