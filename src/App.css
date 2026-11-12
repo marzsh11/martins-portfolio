@@ -58,8 +58,8 @@
   color: var(--nav-color);
 }
 
-.primary-nav a, .brand, .contact { transition: opacity 160ms ease; }
-.primary-nav a:hover, .brand:hover { opacity: 0.68; }
+
+.primary-nav a:hover, .brand:hover { opacity: 1; }
 
 .contact {
   position: relative;
@@ -77,7 +77,6 @@
   inset: 0 0 auto auto;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 2s ease;
 }
 
 .contact:hover .contact__label, .contact:focus-visible .contact__label { opacity: 0; }
@@ -111,7 +110,7 @@
 
   border-top: 0.0625rem solid var(--rule);
   color: var(--footer-color);
-  font-size: clamp(0.75rem, 1.176vw, 0.875rem);
+  font-size: clamp(0.5rem, 1.176vw, 0.75rem);
   line-height: 1;
   transition: color 2s ease, border-color 2s ease;
 }
@@ -130,7 +129,7 @@
 }
 
 .theme-toggle:focus-visible { outline: 0.0625rem solid currentColor; outline-offset: 0.3125rem; }
-.theme-mark { width: clamp(1.875rem, 2.5vw, 2.125rem); height: clamp(1.875rem, 2.5vw, 2.125rem); flex: 0 0 clamp(1.875rem, 2.5vw, 2.125rem); overflow: visible; }
+.theme-mark { width: clamp(1.25rem, 2.5vw, 1.5rem); height: clamp(1.25rem, 2.5vw, 1.5rem); flex: 0 0 clamp(0.75rem, 2vw, 0.75rem); overflow: visible; }
 .theme-mark__outer, .theme-mark__inner { fill: none; stroke: var(--footer-color); stroke-width: 1; transition: stroke 2s ease; }
 .theme-mark__fill { fill: var(--footer-color); transition: fill 2s ease; }
 
