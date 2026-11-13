@@ -22,9 +22,17 @@ function ThemeMark() {
   )
 }
 
+const featuredProjects = [
+  { id: '000', client: 'M. G. Jr Portrait', category: 'Photography', year: '2025' },
+  { id: '001', client: 'The Open Studio', category: 'Zine', year: '2025' },
+  { id: '002', client: 'Antojitos Mi Amor', category: 'Website', year: '2026' },
+  { id: '003', client: 'Disillusion', category: 'Website', year: '2026' },
+]
+
 function App() {
   const [time, setTime] = useState(getLosAngelesTime)
   const [isInverted, setIsInverted] = useState(false)
+  const [activeProject, setActiveProject] = useState('000')
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setTime(getLosAngelesTime()), 1000)
@@ -46,7 +54,39 @@ function App() {
       </header>
 
       <section className="page-content" id="top" aria-label="Portfolio">
-        <span className="visually-hidden" id="work">Selected work</span>
+        <p className="brand-description">
+          is a Mexican-American<br />
+          multimedia creative / full stack developer<br />
+          based out of Los Angeles County.
+        </p>
+        <section className="featured-work" id="work" aria-label="Featured work">
+          <div className="featured-heading">
+            <span>featured</span>
+            <span className="featured-toggle__rule" aria-hidden="true" />
+          </div>
+          <div className="work-list" id="featured-project-list">
+              {featuredProjects.map((project) => {
+                const isActive = activeProject === project.id
+                return (
+                  <button
+                    className={`work-row${isActive ? ' work-row--active' : ''}`}
+                    type="button"
+                    key={project.id}
+                    aria-current={isActive ? 'true' : undefined}
+                    onMouseEnter={() => setActiveProject(project.id)}
+                    onFocus={() => setActiveProject(project.id)}
+                    onClick={() => setActiveProject(project.id)}
+                  >
+                    <span className="work-row__number">{project.id}</span>
+                    <span className="work-row__client">{project.client}</span>
+                    <span className="work-row__category">{project.category}</span>
+                    <span className="work-row__year">{project.year}</span>
+                    <span className="work-row__marker" aria-hidden="true">{isActive ? '<' : ''}</span>
+                  </button>
+                )
+              })}
+          </div>
+        </section>
         <span className="visually-hidden" id="info">About Martin Gama Jr</span>
       </section>
 
