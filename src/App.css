@@ -9,10 +9,13 @@
   --contact-color: rgba(255, 255, 255, 0.9);
   --footer-color: rgba(255, 255, 255, 0.7);
   --utility-font-size: clamp(1.1rem, 1.176vw, 1.65rem);
+  --project-columns: 3rem minmax(0, 1.55fr) minmax(0, 1.2fr) 3rem 0.75rem;
+  --project-column-gap: clamp(0.35rem, 0.9vw, 0.75rem);
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100svh;
   min-height: 100svh;
   padding: calc(var(--side-padding) * .16) var(--side-padding) 0;
   overflow: hidden;
@@ -76,8 +79,26 @@
   color: var(--nav-color);
 }
 .primary-nav a {
+  position: relative;
   transition: opacity 160ms ease, color 160ms ease;
 }
+
+.primary-nav a::after {
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  left: 50%;
+  width: 3rem;
+  height: 0.0625rem;
+  content: '';
+  transform: translateX(-50%);
+  background: var(--rule);
+  opacity: 0;
+  transition: opacity 160ms ease, background-color 2s ease;
+}
+
+.primary-nav a[aria-current='page']::after,
+.primary-nav a:hover::after,
+.primary-nav a:focus-visible::after { opacity: 1; }
 
 .primary-nav a:hover,
 .primary-nav a:focus-visible {
@@ -118,11 +139,38 @@
 .page-content {
   position: relative;
   flex: 1 1 auto;
-  min-height: 7.5rem;
+  min-height: 0;
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
+
+.page-content--work { justify-content: flex-start; }
+
+.work-page {
+  width: min(100%, 34rem);
+  margin-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  font-size: var(--utility-font-size);
+  line-height: 1.2;
+}
+
+.project-columns {
+  display: grid;
+  grid-template-columns: var(--project-columns);
+  column-gap: var(--project-column-gap);
+  align-items: center;
+  color: var(--page-fg);
+  opacity: 0.75;
+}
+
+.project-columns > :nth-child(4) { text-align: right; }
+
+.work-page .work-list { margin-top: 0.5rem; }
+
+.site-footer { flex-shrink: 0; }
 
 .brand-description {
   position: absolute;
@@ -175,9 +223,9 @@
 
 .work-row {
   display: grid;
-  grid-template-columns: 3rem minmax(0, 1.55fr) minmax(0, 1.2fr) 3rem 0.75rem;
+  grid-template-columns: var(--project-columns);
   align-items: center;
-  column-gap: clamp(0.35rem, 0.9vw, 0.75rem);
+  column-gap: var(--project-column-gap);
   width: 100%;
   padding: 0;
   margin-block: 0;
@@ -267,8 +315,8 @@
   .contact { grid-column: 2; grid-row: 1; font-size: var(--utility-font-size); }
   .primary-nav { grid-column: 1 / -1; grid-row: 2; justify-self: center; gap: 4.5rem; font-size: var(--utility-font-size); }
   .featured-work { width: 100%; }
-  .work-row { grid-template-columns: 2.5rem minmax(0, 1.3fr) minmax(0, 1fr) 2.5rem 0.65rem; column-gap: 0.325rem; }
-  .page-content { min-height: 6.25rem; }
+  .portfolio { --project-columns: 2.5rem minmax(0, 1.3fr) minmax(0, 1fr) 2.5rem 0.65rem; --project-column-gap: 0.325rem; }
+  .page-content { min-height: 0; }
   .footer-meta { flex-direction: column; align-items: flex-start; gap: 0.4375rem; font-size: 0.875rem; }
   .site-footer { height: 4.125rem; min-height: 4.125rem; }
   .theme-toggle { gap: 0.5rem; font-size: 0.875rem; }
