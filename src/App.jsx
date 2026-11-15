@@ -23,8 +23,10 @@ function ThemeMark() {
   )
 }
 
-function isWorkRoute() {
-  return window.location.pathname.replace(/\/+$/, '') === '/work'
+function getCurrentPage() {
+  const path = window.location.pathname.replace(/\/+$/, '')
+  if (path === '/work' || path === '/info') return path.slice(1)
+  return 'home'
 }
 
 function ProjectRows({ entries, activeProject, setActiveProject }) {
@@ -73,11 +75,119 @@ function WorkPage({ activeProject, setActiveProject }) {
   )
 }
 
+function EducationEntry({ school, degree, years }) {
+  return (
+    <div className="education-entry">
+      <div className="info-detail">{school}</div>
+      <div className="education-degree info-secondary">
+        <span>{degree}</span>
+        <em>{years}</em>
+      </div>
+    </div>
+  )
+}
+
+function ExperienceEntry({ organization, role, children }) {
+  return (
+    <article className="experience-entry">
+      <div className="info-detail">{organization}</div>
+      <div className="experience-role info-secondary">{role}</div>
+      <p className="info-description">
+        {children}
+      </p>
+    </article>
+  )
+}
+
+function InfoPage() {
+  return (
+    <section className="info-page" aria-label="About Martin Gama Jr">
+      <div className="info-column info-column--left">
+        <section className="info-section" aria-labelledby="education-title">
+          <div className="info-section__heading">
+            <h1 className="info-section__title" id="education-title">education</h1>
+            <span className="info-section__marker" aria-hidden="true">{'<'}</span>
+          </div>
+          <div className="education-list">
+            <EducationEntry
+              school="University of California San Diego"
+              degree="B.S Mathematics/Computer-Science"
+              years="2024-2026"
+            />
+            <EducationEntry
+              school="Pasadena City College"
+              degree="A.S-T Computer Science"
+              years="2022-2024"
+            />
+          </div>
+        </section>
+
+        <section className="info-section" aria-labelledby="experience-title">
+          <div className="info-section__heading">
+            <h2 className="info-section__title" id="experience-title">experience</h2>
+            <span className="info-section__marker" aria-hidden="true">{'<'}</span>
+          </div>
+          <div className="experience-list">
+            <ExperienceEntry organization="KSDT Radio" role="Computer Engineer / Web Developer Intern">
+              Built and maintained front-end components using React.js and CSS to support website redesign initiatives and improve user experience.
+            </ExperienceEntry>
+            <ExperienceEntry organization="Out The Archive" role="Creative Space Interdisciplinary Collaborator">
+              Collaborated with a creative student-led team to produce a fashion short film, contributing to concept development, styling, and design. Designed and presented an original look for the organization’s runway show.
+            </ExperienceEntry>
+            <ExperienceEntry organization="Pasadena City College" role="Math Tutor">
+              Collaborated with a creative student-led team to produce a fashion short film, contributing to concept development, styling, and design. Designed and presented an original look for the organization’s runway show.
+            </ExperienceEntry>
+          </div>
+        </section>
+      </div>
+
+      <div className="info-column info-column--middle">
+        <section className="info-section" aria-labelledby="skills-title">
+          <div className="info-section__heading">
+            <h2 className="info-section__title" id="skills-title">skills</h2>
+            <span className="info-section__marker" aria-hidden="true">{'<'}</span>
+          </div>
+          <dl className="info-pairs">
+            <dt>design</dt>
+            <dd>Figma, Affinity Designer, TouchDesigner</dd>
+            <dt>code</dt>
+            <dd>HTML, CSS, Python, C++, ReactJS, Git, LaTeX</dd>
+          </dl>
+        </section>
+
+        <section className="info-section" aria-labelledby="connect-title">
+          <div className="info-section__heading">
+            <h2 className="info-section__title" id="connect-title">connect</h2>
+            <span className="info-section__marker" aria-hidden="true">{'<'}</span>
+          </div>
+          <dl className="info-pairs info-pairs--connect">
+            <dt>email</dt>
+            <dd><a href="mailto:martingama2100@gmail.com">martingama2100@gmail.com</a></dd>
+            <dt>linkedin</dt>
+            <dd><a href="https://www.linkedin.com/in/jrmartingama/" target="_blank" rel="noreferrer">jrmartingama</a></dd>
+            <dt>github</dt>
+            <dd><a href="https://github.com/marzsh11" target="_blank" rel="noreferrer">marzsh11</a></dd>
+            <dt>instagram</dt>
+            <dd><a href="https://www.instagram.com/icedlattepounder/" target="_blank" rel="noreferrer">icedlattepounder</a></dd>
+          </dl>
+        </section>
+      </div>
+
+      <div className="info-column info-column--portrait">
+        <div className="portrait-placeholder" role="img" aria-label="Portrait image placeholder" />
+        <p className="portrait-caption">
+          Martin Gama Jr is a Mexican-American multimedia creative and full stack developer based in Los Angeles County.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 function App() {
   const [time, setTime] = useState(getLosAngelesTime)
   const [isInverted, setIsInverted] = useState(false)
   const [activeProject, setActiveProject] = useState('000')
-  const [isWorkPage, setIsWorkPage] = useState(isWorkRoute)
+  const [currentPage, setCurrentPage] = useState(getCurrentPage)
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setTime(getLosAngelesTime()), 1000)
@@ -85,7 +195,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const updatePageFromHistory = () => setIsWorkPage(isWorkRoute())
+    const updatePageFromHistory = () => setCurrentPage(getCurrentPage())
     window.addEventListener('popstate', updatePageFromHistory)
     return () => window.removeEventListener('popstate', updatePageFromHistory)
   }, [])
@@ -94,7 +204,7 @@ function App() {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
     window.history.pushState({}, '', path)
-    setIsWorkPage(isWorkRoute())
+    setCurrentPage(getCurrentPage())
   }
 
   return (
@@ -102,8 +212,8 @@ function App() {
       <header className="site-header">
         <a className="brand" href="/" onClick={(event) => navigate(event, '/')} aria-label="Martin Gama Jr home">Martin Gama Jr</a>
         <nav className="primary-nav" aria-label="Main navigation">
-          <a href="/work" onClick={(event) => navigate(event, '/work')} aria-current={isWorkPage ? 'page' : undefined}>work</a>
-          <a href="/#info">info</a>
+          <a href="/work" onClick={(event) => navigate(event, '/work')} aria-current={currentPage === 'work' ? 'page' : undefined}>work</a>
+          <a href="/info" onClick={(event) => navigate(event, '/info')} aria-current={currentPage === 'info' ? 'page' : undefined}>info</a>
         </nav>
         <a className="contact" href="mailto:martingama2100@gmail.com">
           <span className="contact__label">contact</span>
@@ -111,9 +221,11 @@ function App() {
         </a>
       </header>
 
-      <section className={`page-content${isWorkPage ? ' page-content--work' : ''}`} id="top" aria-label="Portfolio">
-        {isWorkPage ? (
+      <section className={`page-content page-content--${currentPage}`} id="top" aria-label="Portfolio">
+        {currentPage === 'work' ? (
           <WorkPage activeProject={activeProject} setActiveProject={setActiveProject} />
+        ) : currentPage === 'info' ? (
+          <InfoPage />
         ) : (
           <>
             <p className="brand-description">
