@@ -24,8 +24,8 @@ function ThemeMark() {
 }
 
 function getCurrentPage() {
-  const path = window.location.pathname.replace(/\/+$/, '')
-  if (path === '/work' || path === '/info') return path.slice(1)
+  const route = window.location.hash.replace(/^#\/?/, '').replace(/\/+$/, '')
+  if (route === 'work' || route === 'info') return route
   return 'home'
 }
 
@@ -203,17 +203,22 @@ function App() {
   function navigate(event, path) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
-    window.history.pushState({}, '', path)
+    const destination = `${import.meta.env.BASE_URL}#${path}`
+    window.history.pushState({}, '', destination)
     setCurrentPage(getCurrentPage())
   }
+
+  const homeHref = `${import.meta.env.BASE_URL}#/`
+  const workHref = `${import.meta.env.BASE_URL}#/work`
+  const infoHref = `${import.meta.env.BASE_URL}#/info`
 
   return (
     <main className={`portfolio${isInverted ? ' portfolio--inverted' : ''}`}>
       <header className="site-header">
-        <a className="brand" href="/" onClick={(event) => navigate(event, '/')} aria-label="Martin Gama Jr home">Martin Gama Jr</a>
+        <a className="brand" href={homeHref} onClick={(event) => navigate(event, '/')} aria-label="Martin Gama Jr home">Martin Gama Jr</a>
         <nav className="primary-nav" aria-label="Main navigation">
-          <a href="/work" onClick={(event) => navigate(event, '/work')} aria-current={currentPage === 'work' ? 'page' : undefined}>work</a>
-          <a href="/info" onClick={(event) => navigate(event, '/info')} aria-current={currentPage === 'info' ? 'page' : undefined}>info</a>
+          <a href={workHref} onClick={(event) => navigate(event, '/work')} aria-current={currentPage === 'work' ? 'page' : undefined}>work</a>
+          <a href={infoHref} onClick={(event) => navigate(event, '/info')} aria-current={currentPage === 'info' ? 'page' : undefined}>info</a>
         </nav>
         <a className="contact" href="mailto:martingama2100@gmail.com">
           <span className="contact__label">contact</span>
