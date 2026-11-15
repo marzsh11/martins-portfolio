@@ -129,13 +129,13 @@ function InfoPage() {
           </div>
           <div className="experience-list">
             <ExperienceEntry organization="KSDT Radio" role="Computer Engineer / Web Developer Intern">
-              Built and maintained front-end components using React.js and CSS to support website redesign initiatives and improve user experience.
+              Developed and maintained responsive front-end components using React.js and CSS to execute key website redesign initiatives for KSDT Radio. Collaborated on UI/UX improvements that modernized the digital platform, streamlined navigation, and enhanced overall listener engagement.
             </ExperienceEntry>
             <ExperienceEntry organization="Out The Archive" role="Creative Space Interdisciplinary Collaborator">
-              Collaborated with a creative student-led team to produce a fashion short film, contributing to concept development, styling, and design. Designed and presented an original look for the organization’s runway show.
+              Collaborated within a student-led creative collective to conceptualize, style, and produce an original fashion short film from ideation to execution. Designed and showcased a custom garment look for the organization’s live runway show, blending visual storytelling with hands-on fashion design.
             </ExperienceEntry>
             <ExperienceEntry organization="Pasadena City College" role="Math Tutor">
-              Collaborated with a creative student-led team to produce a fashion short film, contributing to concept development, styling, and design. Designed and presented an original look for the organization’s runway show.
+              Translated complex concepts into accessible, step-by-step frameworks for STEM students at Pasadena City College. Leveraged active listening and adaptable communication to diagnose learning gaps, strengthen technical fluency, and accelerate student performance.
             </ExperienceEntry>
           </div>
         </section>
@@ -229,8 +229,8 @@ function App() {
         ) : (
           <>
             <p className="brand-description">
-              is a Mexican-American<br />
-              multimedia creative / full stack developer<br />
+              is a Mexican-American 
+              multimedia creative / web developer<br />
               based out of Los Angeles County.
             </p>
             <section className="featured-work" aria-label="Featured work">

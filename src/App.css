@@ -8,6 +8,11 @@
   --nav-color: rgba(255, 255, 255, 0.75);
   --contact-color: rgba(255, 255, 255, 0.9);
   --footer-color: rgba(255, 255, 255, 0.7);
+  --brand-gradient-a: #ffffff;
+  --brand-gradient-b: #eeeeeecb;
+  --brand-gradient-c: #f7f7f7d7;
+  --brand-gradient-d: #f7f7f7f5;
+  --brand-gradient-e: #dbdbdbcb;
   --utility-font-size: clamp(1.1rem, 1.176vw, 1.65rem);
   --project-columns: 3rem minmax(0, 1.55fr) minmax(0, 1.2fr) 3rem 0.75rem;
   --project-column-gap: clamp(0.35rem, 0.9vw, 0.75rem);
@@ -32,6 +37,11 @@
   --nav-color: rgba(10, 10, 10, 0.65);
   --contact-color: rgba(10, 10, 10, 0.65);
   --footer-color: rgba(10, 10, 10, 0.65);
+  --brand-gradient-a: #000000;
+  --brand-gradient-b: #111111cb;
+  --brand-gradient-c: #080808d7;
+  --brand-gradient-d: #080808f5;
+  --brand-gradient-e: #242424cb;
 }
 
 .site-header {
@@ -69,12 +79,12 @@
   transition: opacity 160ms ease, color 160ms ease;
   background: linear-gradient(
     40deg,
-    #ffffff,
-    #eeeeeecb,
-    #f7f7f7d7,
-    #f7f7f7f5,
-    #dbdbdbcb,
-    #ffffff
+    var(--brand-gradient-a),
+    var(--brand-gradient-b),
+    var(--brand-gradient-c),
+    var(--brand-gradient-d),
+    var(--brand-gradient-e),
+    var(--brand-gradient-a)
   );
   color: transparent;
   background-clip: text;
@@ -256,7 +266,7 @@
 }
 
 .info-detail { opacity: 0.9; }
-.info-secondary { opacity: 0.65; }
+.info-secondary { font-style: italic; opacity: 0.65; }
 
 .education-degree {
   display: flex;
