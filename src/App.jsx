@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { gsap } from 'gsap'
 import { featuredProjects, projects } from './data/projects/index.js'
 import './App.css'
 
@@ -25,11 +26,17 @@ function ThemeMark() {
 
 function getCurrentPage() {
   const route = window.location.hash.replace(/^#\/?/, '').replace(/\/+$/, '')
-  if (route === 'work' || route === 'info') return route
+  const page = route.split('/')[0]
+  if (page === 'work' || page === 'info') return page
   return 'home'
 }
 
-function ProjectRows({ entries, activeProject, setActiveProject }) {
+function getProjectFromRoute() {
+  const [, page, projectId] = window.location.hash.match(/^#\/?([^/]+)(?:\/([^/]+))?/) || []
+  return page === 'work' ? projectId : undefined
+}
+
+function ProjectRows({ entries, activeProject, setActiveProject, onProjectOpen }) {
   return (
     <div className="work-list">
       {entries.map((project) => {
@@ -39,10 +46,14 @@ function ProjectRows({ entries, activeProject, setActiveProject }) {
             className={`work-row${isActive ? ' work-row--active' : ''}`}
             type="button"
             key={project.id}
+            data-project-id={project.id}
             aria-current={isActive ? 'true' : undefined}
             onMouseEnter={() => setActiveProject(project.id)}
             onFocus={() => setActiveProject(project.id)}
-            onClick={() => setActiveProject(project.id)}
+            onClick={(event) => {
+              setActiveProject(project.id)
+              onProjectOpen?.(event, project.id)
+            }}
           >
             <span className="work-row__number">{project.id}</span>
             <span className="work-row__client">{project.client}</span>
@@ -56,21 +67,122 @@ function ProjectRows({ entries, activeProject, setActiveProject }) {
   )
 }
 
-function WorkPage({ activeProject, setActiveProject }) {
+function HomeShowcase({ project, onProjectOpen }) {
+  if (!project) return null
+
+  const href = `${import.meta.env.BASE_URL}#/work/${project.id}`
   return (
-    <section className="work-page" aria-label="All work">
-      <div className="project-columns" aria-hidden="true">
-        <span>no.</span>
-        <span>client</span>
-        <span>project</span>
-        <span>year</span>
-        <span />
-      </div>
-      <ProjectRows
-        entries={projects}
-        activeProject={activeProject}
-        setActiveProject={setActiveProject}
-      />
+    <a
+      className={`home-preview${project.image ? '' : ' home-preview--missing'}`}
+      href={href}
+      aria-label={`Open ${project.client} project`}
+      onClick={(event) => onProjectOpen(event, project.id)}
+    >
+      {project.image ? (
+        <img className="home-preview__image" src={project.image} alt={project.imageAlt || `${project.client} project`} />
+      ) : (
+        <span className="home-preview__fallback">Add a project image to this entry</span>
+      )}
+    </a>
+  )
+}
+
+function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRoute }) {
+  const pageRef = useRef(null)
+  const timelineRef = useRef(null)
+  const [detailProjectId, setDetailProjectId] = useState(null)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const beginProject = useCallback((projectId) => {
+    const page = pageRef.current
+    const selectedRow = page?.querySelector(`[data-project-id="${projectId}"]`)
+    const columnHeadings = page?.querySelector('.project-columns')
+    if (!page || !selectedRow || !columnHeadings || isAnimating) return
+
+    const selectedRect = selectedRow.getBoundingClientRect()
+    const headingRect = columnHeadings.getBoundingClientRect()
+    const rise = headingRect.top - selectedRect.top
+    const otherRows = [...page.querySelectorAll('.work-row')].filter((row) => row !== selectedRow)
+
+    setActiveProject(projectId)
+    setIsAnimating(true)
+    timelineRef.current?.kill()
+    timelineRef.current = gsap.timeline({
+      onComplete: () => {
+        gsap.set([columnHeadings, ...otherRows, selectedRow], { clearProps: 'all' })
+        setDetailProjectId(projectId)
+        setIsAnimating(false)
+        onProjectRoute?.(projectId)
+      },
+    })
+      .to(columnHeadings, { autoAlpha: 0, duration: 0.28, ease: 'power1.out' }, 0)
+      .to(otherRows, { autoAlpha: 0, duration: 0.32, ease: 'power1.out' }, 0)
+      .to(selectedRow, { y: rise, duration: 0.78, ease: 'power3.inOut' }, 0)
+  }, [isAnimating, onProjectRoute, setActiveProject])
+
+  useEffect(() => {
+    if (!routeProjectId || detailProjectId === routeProjectId || isAnimating) return undefined
+    const frame = window.requestAnimationFrame(() => beginProject(routeProjectId))
+    return () => window.cancelAnimationFrame(frame)
+  }, [beginProject, detailProjectId, isAnimating, routeProjectId])
+
+  useEffect(() => () => timelineRef.current?.kill(), [])
+
+  const visibleDetailProjectId = routeProjectId === detailProjectId ? detailProjectId : null
+
+  useEffect(() => {
+    if (!visibleDetailProjectId) return undefined
+    const body = pageRef.current?.querySelector('.project-detail__body')
+    if (!body) return undefined
+    const reveal = gsap.fromTo(body,
+      { autoAlpha: 0, y: 12 },
+      { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power2.out' },
+    )
+    return () => reveal.kill()
+  }, [visibleDetailProjectId])
+
+  const detailProject = projects.find((project) => project.id === visibleDetailProjectId)
+
+  return (
+    <section className={`work-page${detailProject ? ' work-page--detail' : ''}`} aria-label={detailProject ? `${detailProject.client} project` : 'All work'} ref={pageRef} aria-busy={isAnimating}>
+      {detailProject ? (
+        <>
+          <div className="project-detail__metadata" data-project-id={detailProject.id}>
+            <span>{detailProject.id}</span>
+            <span>{detailProject.client}</span>
+            <span>{detailProject.project}</span>
+            <span className="work-row__year">{detailProject.year}</span>
+            <span className="work-row__marker" aria-hidden="true">{'<'}</span>
+          </div>
+          <div className="project-detail__body">
+            {detailProject.image ? (
+              <img className="project-detail__image" src={detailProject.image} alt={detailProject.imageAlt || `${detailProject.client} project`} />
+            ) : (
+              <div className="project-detail__image project-detail__image--missing">Add a project image to this entry</div>
+            )}
+            <p className="project-detail__description">{detailProject.description || 'Project description coming soon.'}</p>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="project-columns" aria-hidden="true">
+            <span>no.</span>
+            <span>client</span>
+            <span>project</span>
+            <span>year</span>
+            <span />
+          </div>
+          <ProjectRows
+            entries={projects}
+            activeProject={activeProject}
+            setActiveProject={setActiveProject}
+            onProjectOpen={(event, projectId) => {
+              event.preventDefault()
+              beginProject(projectId)
+            }}
+          />
+        </>
+      )}
     </section>
   )
 }
@@ -134,7 +246,7 @@ function InfoPage() {
       <div className="info-panel" aria-live="polite">
         {activeSection === 'education' && (
           <div className="education-list">
-            <EducationEntry school="University of California San Diego" degree="B.S Mathematics/Computer-Science" years="2024-2026" />
+            <EducationEntry school="University of California San Diego" degree="B.S Mathematics-Computer Science" years="2024-2026" />
             <EducationEntry school="Pasadena City College" degree="A.S-T Computer Science" years="2022-2024" />
           </div>
         )}
@@ -186,7 +298,7 @@ function InfoPage() {
 function App() {
   const [time, setTime] = useState(getLosAngelesTime)
   const [isInverted, setIsInverted] = useState(false)
-  const [activeProject, setActiveProject] = useState('000')
+  const [activeProject, setActiveProject] = useState(() => getProjectFromRoute() || '000')
   const [currentPage, setCurrentPage] = useState(getCurrentPage)
 
   useEffect(() => {
@@ -195,7 +307,10 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const updatePageFromHistory = () => setCurrentPage(getCurrentPage())
+    const updatePageFromHistory = () => {
+      setCurrentPage(getCurrentPage())
+      setActiveProject(getProjectFromRoute() || '000')
+    }
     window.addEventListener('popstate', updatePageFromHistory)
     return () => window.removeEventListener('popstate', updatePageFromHistory)
   }, [])
@@ -206,7 +321,14 @@ function App() {
     const destination = `${import.meta.env.BASE_URL}#${path}`
     window.history.pushState({}, '', destination)
     setCurrentPage(getCurrentPage())
+    setActiveProject(getProjectFromRoute() || '000')
   }
+
+  const openProjectRoute = useCallback((projectId) => {
+    window.history.pushState({}, '', `${import.meta.env.BASE_URL}#/work/${projectId}`)
+    setCurrentPage('work')
+    setActiveProject(projectId)
+  }, [])
 
   const homeHref = `${import.meta.env.BASE_URL}#/`
   const workHref = `${import.meta.env.BASE_URL}#/work`
@@ -228,7 +350,12 @@ function App() {
 
       <section className={`page-content page-content--${currentPage}`} id="top" aria-label="Portfolio">
         {currentPage === 'work' ? (
-          <WorkPage activeProject={activeProject} setActiveProject={setActiveProject} />
+          <WorkPage
+            activeProject={activeProject}
+            setActiveProject={setActiveProject}
+            routeProjectId={getProjectFromRoute()}
+            onProjectRoute={openProjectRoute}
+          />
         ) : currentPage === 'info' ? (
           <InfoPage />
         ) : (
@@ -238,17 +365,24 @@ function App() {
               multimedia creative / web developer<br />
               based out of Los Angeles County.
             </p>
-            <section className="featured-work" aria-label="Featured work">
-              <div className="featured-heading">
-                <span>featured</span>
-                <span className="featured-toggle__rule" aria-hidden="true" />
-              </div>
-              <ProjectRows
-                entries={featuredProjects}
-                activeProject={activeProject}
-                setActiveProject={setActiveProject}
+            <div className="home-hero">
+              <section className="featured-work" aria-label="Featured work">
+                <div className="featured-heading">
+                  <span>featured</span>
+                  <span className="featured-toggle__rule" aria-hidden="true" />
+                </div>
+                <ProjectRows
+                  entries={featuredProjects}
+                  activeProject={activeProject}
+                  setActiveProject={setActiveProject}
+                  onProjectOpen={(event, projectId) => navigate(event, `/work/${projectId}`)}
+                />
+              </section>
+              <HomeShowcase
+                project={featuredProjects.find((project) => project.id === activeProject) || featuredProjects[0]}
+                onProjectOpen={(event, projectId) => navigate(event, `/work/${projectId}`)}
               />
-            </section>
+            </div>
           </>
         )}
         <span className="visually-hidden" id="info">About Martin Gama Jr</span>
