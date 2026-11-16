@@ -36,7 +36,7 @@ function getProjectFromRoute() {
   return page === 'work' ? projectId : undefined
 }
 
-function ProjectRows({ entries, activeProject, setActiveProject, onProjectOpen }) {
+function ProjectRows({ entries, activeProject, setActiveProject, onProjectOpen, interactionDisabled = false }) {
   return (
     <div className="work-list">
       {entries.map((project) => {
@@ -48,9 +48,10 @@ function ProjectRows({ entries, activeProject, setActiveProject, onProjectOpen }
             key={project.id}
             data-project-id={project.id}
             aria-current={isActive ? 'true' : undefined}
-            onMouseEnter={() => setActiveProject(project.id)}
-            onFocus={() => setActiveProject(project.id)}
+            onMouseEnter={() => !interactionDisabled && setActiveProject(project.id)}
+            onFocus={() => !interactionDisabled && setActiveProject(project.id)}
             onClick={(event) => {
+              if (interactionDisabled) return
               setActiveProject(project.id)
               onProjectOpen?.(event, project.id)
             }}
@@ -87,30 +88,31 @@ function HomeShowcase({ project, onProjectOpen }) {
   )
 }
 
-function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRoute }) {
+function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRoute, onTransitionStateChange }) {
   const pageRef = useRef(null)
   const timelineRef = useRef(null)
-  const [detailProjectId, setDetailProjectId] = useState(null)
+  const isAnimatingRef = useRef(false)
   const [isAnimating, setIsAnimating] = useState(false)
 
   const beginProject = useCallback((projectId) => {
     const page = pageRef.current
     const selectedRow = page?.querySelector(`[data-project-id="${projectId}"]`)
     const columnHeadings = page?.querySelector('.project-columns')
-    if (!page || !selectedRow || !columnHeadings || isAnimating) return
+    if (!page || !selectedRow || !columnHeadings || isAnimatingRef.current) return
 
     const selectedRect = selectedRow.getBoundingClientRect()
     const headingRect = columnHeadings.getBoundingClientRect()
     const rise = headingRect.top - selectedRect.top
     const otherRows = [...page.querySelectorAll('.work-row')].filter((row) => row !== selectedRow)
 
+    isAnimatingRef.current = true
     setActiveProject(projectId)
     setIsAnimating(true)
+    onTransitionStateChange(true)
     timelineRef.current?.kill()
     timelineRef.current = gsap.timeline({
       onComplete: () => {
-        gsap.set([columnHeadings, ...otherRows, selectedRow], { clearProps: 'all' })
-        setDetailProjectId(projectId)
+        isAnimatingRef.current = false
         setIsAnimating(false)
         onProjectRoute?.(projectId)
       },
@@ -118,20 +120,15 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
       .to(columnHeadings, { autoAlpha: 0, duration: 0.28, ease: 'power1.out' }, 0)
       .to(otherRows, { autoAlpha: 0, duration: 0.32, ease: 'power1.out' }, 0)
       .to(selectedRow, { y: rise, duration: 0.78, ease: 'power3.inOut' }, 0)
-  }, [isAnimating, onProjectRoute, setActiveProject])
-
-  useEffect(() => {
-    if (!routeProjectId || detailProjectId === routeProjectId || isAnimating) return undefined
-    const frame = window.requestAnimationFrame(() => beginProject(routeProjectId))
-    return () => window.cancelAnimationFrame(frame)
-  }, [beginProject, detailProjectId, isAnimating, routeProjectId])
+  }, [onProjectRoute, onTransitionStateChange, setActiveProject])
 
   useEffect(() => () => timelineRef.current?.kill(), [])
 
-  const visibleDetailProjectId = routeProjectId === detailProjectId ? detailProjectId : null
+  const visibleDetailProjectId = routeProjectId || null
 
   useEffect(() => {
     if (!visibleDetailProjectId) return undefined
+    onTransitionStateChange(false)
     const body = pageRef.current?.querySelector('.project-detail__body')
     if (!body) return undefined
     const reveal = gsap.fromTo(body,
@@ -139,20 +136,19 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
       { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power2.out' },
     )
     return () => reveal.kill()
-  }, [visibleDetailProjectId])
+  }, [onTransitionStateChange, visibleDetailProjectId])
 
   const detailProject = projects.find((project) => project.id === visibleDetailProjectId)
 
   return (
-    <section className={`work-page${detailProject ? ' work-page--detail' : ''}`} aria-label={detailProject ? `${detailProject.client} project` : 'All work'} ref={pageRef} aria-busy={isAnimating}>
+    <section className={`work-page${detailProject ? ' work-page--detail' : ''}${isAnimating ? ' work-page--animating' : ''}`} aria-label={detailProject ? `${detailProject.client} project` : 'All work'} ref={pageRef} aria-busy={isAnimating}>
       {detailProject ? (
         <>
-          <div className="project-detail__metadata" data-project-id={detailProject.id}>
+          <div key="project-metadata" className="project-detail__metadata" data-project-id={detailProject.id}>
             <span>{detailProject.id}</span>
             <span>{detailProject.client}</span>
             <span>{detailProject.project}</span>
             <span className="work-row__year">{detailProject.year}</span>
-            <span className="work-row__marker" aria-hidden="true">{'<'}</span>
           </div>
           <div className="project-detail__body">
             {detailProject.image ? (
@@ -165,7 +161,7 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
         </>
       ) : (
         <>
-          <div className="project-columns" aria-hidden="true">
+          <div key="project-columns" className="project-columns" aria-hidden="true">
             <span>no.</span>
             <span>client</span>
             <span>project</span>
@@ -176,6 +172,7 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
             entries={projects}
             activeProject={activeProject}
             setActiveProject={setActiveProject}
+            interactionDisabled={isAnimating}
             onProjectOpen={(event, projectId) => {
               event.preventDefault()
               beginProject(projectId)
@@ -286,7 +283,7 @@ function InfoPage() {
       </div>
 
       <div className="info-column info-column--portrait">
-        <div className="portrait-placeholder" role="img" aria-label="Portrait image placeholder" />
+        <img className="portrait-image" src={`${import.meta.env.BASE_URL}headshot.jpeg`} alt="Portrait of Martin Gama Jr" />
         <p className="portrait-caption">
           Martin Gama Jr is a Mexican-American multimedia creative and full stack developer based in Los Angeles County.
         </p>
@@ -300,6 +297,11 @@ function App() {
   const [isInverted, setIsInverted] = useState(false)
   const [activeProject, setActiveProject] = useState(() => getProjectFromRoute() || '000')
   const [currentPage, setCurrentPage] = useState(getCurrentPage)
+  const homePageRef = useRef(null)
+  const homeTimelineRef = useRef(null)
+  const homeTransitionRef = useRef(false)
+  const [isHomeTransitioning, setIsHomeTransitioning] = useState(false)
+  const [isProjectTransitioning, setIsProjectTransitioning] = useState(false)
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setTime(getLosAngelesTime()), 1000)
@@ -308,6 +310,8 @@ function App() {
 
   useEffect(() => {
     const updatePageFromHistory = () => {
+      setIsHomeTransitioning(false)
+      setIsProjectTransitioning(false)
       setCurrentPage(getCurrentPage())
       setActiveProject(getProjectFromRoute() || '000')
     }
@@ -320,22 +324,64 @@ function App() {
     event.preventDefault()
     const destination = `${import.meta.env.BASE_URL}#${path}`
     window.history.pushState({}, '', destination)
+    setIsHomeTransitioning(false)
+    setIsProjectTransitioning(false)
     setCurrentPage(getCurrentPage())
     setActiveProject(getProjectFromRoute() || '000')
   }
 
   const openProjectRoute = useCallback((projectId) => {
     window.history.pushState({}, '', `${import.meta.env.BASE_URL}#/work/${projectId}`)
+    setIsHomeTransitioning(false)
+    setIsProjectTransitioning(false)
     setCurrentPage('work')
     setActiveProject(projectId)
   }, [])
+
+  function openProjectFromHome(event, projectId) {
+    event.preventDefault()
+    if (homeTransitionRef.current) return
+
+    const page = homePageRef.current
+    const selectedRow = page?.querySelector(`[data-project-id="${projectId}"]`)
+    const heading = page?.querySelector('.featured-heading')
+    if (!page || !selectedRow || !heading) {
+      openProjectRoute(projectId)
+      return
+    }
+
+    homeTransitionRef.current = true
+    setIsHomeTransitioning(true)
+    setIsProjectTransitioning(true)
+    setActiveProject(projectId)
+
+    const selectedTop = selectedRow.getBoundingClientRect().top
+    const headerBottom = document.querySelector('.site-header')?.getBoundingClientRect().bottom || 0
+    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
+    const detailTop = headerBottom + rootFontSize * 1.5
+    const otherRows = [...page.querySelectorAll('.work-row')].filter((row) => row !== selectedRow)
+    const fadeAway = [heading, ...otherRows, page.querySelector('.home-preview'), page.querySelector('.brand-description')]
+      .filter(Boolean)
+
+    homeTimelineRef.current?.kill()
+    homeTimelineRef.current = gsap.timeline({
+      onComplete: () => {
+        homeTransitionRef.current = false
+        openProjectRoute(projectId)
+      },
+    })
+      .to(fadeAway, { autoAlpha: 0, duration: 0.42, ease: 'power1.out' }, 0)
+      .to(selectedRow, { y: detailTop - selectedTop, duration: 0.9, ease: 'power3.inOut' }, 0)
+  }
+
+  useEffect(() => () => homeTimelineRef.current?.kill(), [])
 
   const homeHref = `${import.meta.env.BASE_URL}#/`
   const workHref = `${import.meta.env.BASE_URL}#/work`
   const infoHref = `${import.meta.env.BASE_URL}#/info`
 
   return (
-    <main className={`portfolio${isInverted ? ' portfolio--inverted' : ''}`}>
+    <main className={`portfolio${isInverted ? ' portfolio--inverted' : ''}${isProjectTransitioning ? ' portfolio--transitioning' : ''}`}>
       <header className="site-header">
         <a className="brand" href={homeHref} onClick={(event) => navigate(event, '/')} aria-label="Martin Gama Jr home">Martin Gama Jr</a>
         <nav className="primary-nav" aria-label="Main navigation">
@@ -348,13 +394,14 @@ function App() {
         </a>
       </header>
 
-      <section className={`page-content page-content--${currentPage}`} id="top" aria-label="Portfolio">
+      <section className={`page-content page-content--${currentPage}${isHomeTransitioning ? ' home-page--transitioning' : ''}`} id="top" aria-label="Portfolio" ref={currentPage === 'home' ? homePageRef : undefined}>
         {currentPage === 'work' ? (
           <WorkPage
             activeProject={activeProject}
             setActiveProject={setActiveProject}
             routeProjectId={getProjectFromRoute()}
             onProjectRoute={openProjectRoute}
+            onTransitionStateChange={setIsProjectTransitioning}
           />
         ) : currentPage === 'info' ? (
           <InfoPage />
@@ -375,7 +422,8 @@ function App() {
                   entries={featuredProjects}
                   activeProject={activeProject}
                   setActiveProject={setActiveProject}
-                  onProjectOpen={(event, projectId) => navigate(event, `/work/${projectId}`)}
+                  interactionDisabled={isHomeTransitioning}
+                  onProjectOpen={openProjectFromHome}
                 />
               </section>
               <HomeShowcase
