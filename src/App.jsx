@@ -100,33 +100,45 @@ function ExperienceEntry({ organization, role, children }) {
 }
 
 function InfoPage() {
+  const [activeSection, setActiveSection] = useState('experience')
+  const [isMenuHovered, setIsMenuHovered] = useState(false)
+  const sectionNames = ['experience', 'education', 'skills', 'connect']
+
   return (
     <section className="info-page" aria-label="About Martin Gama Jr">
-      <div className="info-column info-column--left">
-        <section className="info-section" aria-labelledby="education-title">
-          <div className="info-section__heading">
-            <h1 className="info-section__title" id="education-title">education</h1>
-            <span className="info-section__marker" aria-hidden="true">{'<'}</span>
-          </div>
-          <div className="education-list">
-            <EducationEntry
-              school="University of California San Diego"
-              degree="B.S Mathematics/Computer-Science"
-              years="2024-2026"
-            />
-            <EducationEntry
-              school="Pasadena City College"
-              degree="A.S-T Computer Science"
-              years="2022-2024"
-            />
-          </div>
-        </section>
+      <nav className={`info-nav${isMenuHovered ? ' info-nav--hovering' : ''}`} aria-label="Info sections">
+        <div className="info-nav__list" onPointerLeave={() => setIsMenuHovered(false)}>
+          {sectionNames.map((name) => {
+            const isActive = activeSection === name
+            return (
+              <button
+                className={`info-nav__item${isActive ? ' info-nav__item--active' : ''}`}
+                type="button"
+                key={name}
+                aria-current={isActive ? 'true' : undefined}
+                onClick={() => setActiveSection(name)}
+                onPointerEnter={() => {
+                  setActiveSection(name)
+                  setIsMenuHovered(true)
+                }}
+                onFocus={() => setActiveSection(name)}
+              >
+                <span>{name}</span>
+                <span className="info-nav__marker" aria-hidden="true">{'<'}</span>
+              </button>
+            )
+          })}
+        </div>
+      </nav>
 
-        <section className="info-section" aria-labelledby="experience-title">
-          <div className="info-section__heading">
-            <h2 className="info-section__title" id="experience-title">experience</h2>
-            <span className="info-section__marker" aria-hidden="true">{'<'}</span>
+      <div className="info-panel" aria-live="polite">
+        {activeSection === 'education' && (
+          <div className="education-list">
+            <EducationEntry school="University of California San Diego" degree="B.S Mathematics/Computer-Science" years="2024-2026" />
+            <EducationEntry school="Pasadena City College" degree="A.S-T Computer Science" years="2022-2024" />
           </div>
+        )}
+        {activeSection === 'experience' && (
           <div className="experience-list">
             <ExperienceEntry organization="KSDT Radio" role="Computer Engineer / Web Developer Intern">
               Developed and maintained responsive front-end components using React.js and CSS to execute key website redesign initiatives for KSDT Radio. Collaborated on UI/UX improvements that modernized the digital platform, streamlined navigation, and enhanced overall listener engagement.
@@ -138,28 +150,16 @@ function InfoPage() {
               Translated complex concepts into accessible, step-by-step frameworks for STEM students at Pasadena City College. Leveraged active listening and adaptable communication to diagnose learning gaps, strengthen technical fluency, and accelerate student performance.
             </ExperienceEntry>
           </div>
-        </section>
-      </div>
-
-      <div className="info-column info-column--middle">
-        <section className="info-section" aria-labelledby="skills-title">
-          <div className="info-section__heading">
-            <h2 className="info-section__title" id="skills-title">skills</h2>
-            <span className="info-section__marker" aria-hidden="true">{'<'}</span>
-          </div>
+        )}
+        {activeSection === 'skills' && (
           <dl className="info-pairs">
             <dt>design</dt>
             <dd>Figma, Affinity Designer, TouchDesigner</dd>
             <dt>code</dt>
             <dd>HTML, CSS, Python, C++, ReactJS, Git, LaTeX</dd>
           </dl>
-        </section>
-
-        <section className="info-section" aria-labelledby="connect-title">
-          <div className="info-section__heading">
-            <h2 className="info-section__title" id="connect-title">connect</h2>
-            <span className="info-section__marker" aria-hidden="true">{'<'}</span>
-          </div>
+        )}
+        {activeSection === 'connect' && (
           <dl className="info-pairs info-pairs--connect">
             <dt>email</dt>
             <dd><a href="mailto:martingama2100@gmail.com">martingama2100@gmail.com</a></dd>
@@ -170,7 +170,7 @@ function InfoPage() {
             <dt>instagram</dt>
             <dd><a href="https://www.instagram.com/icedlattepounder/" target="_blank" rel="noreferrer">icedlattepounder</a></dd>
           </dl>
-        </section>
+        )}
       </div>
 
       <div className="info-column info-column--portrait">
