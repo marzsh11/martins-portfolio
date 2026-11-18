@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { featuredProjects, projects } from './data/projects/index.js'
 import './App.css'
@@ -88,7 +88,71 @@ function HomeShowcase({ project, onProjectOpen }) {
   )
 }
 
-function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRoute, onTransitionStateChange }) {
+function createLetterFlights(sourceRow, layer, deltaX, deltaY) {
+  const flights = []
+  const rowOpacity = Number.parseFloat(getComputedStyle(sourceRow).opacity) || 1
+  const walker = document.createTreeWalker(sourceRow, NodeFilter.SHOW_TEXT)
+  let textNode = walker.nextNode()
+
+  while (textNode) {
+    const text = textNode.textContent || ''
+    const cell = textNode.parentElement
+    const cellStyle = getComputedStyle(cell)
+    const range = document.createRange()
+
+    for (let offset = 0; offset < text.length;) {
+      const character = String.fromCodePoint(text.codePointAt(offset))
+      const nextOffset = offset + character.length
+      range.setStart(textNode, offset)
+      range.setEnd(textNode, nextOffset)
+      const rect = range.getBoundingClientRect()
+
+      if (rect.height > 0 && !cell?.closest('.work-row__marker')) {
+        const flyer = document.createElement('span')
+        flyer.className = 'home-letter-flight'
+        flyer.textContent = character
+        flyer.setAttribute('aria-hidden', 'true')
+        Object.assign(flyer.style, {
+          left: `${rect.left}px`,
+          top: `${rect.top}px`,
+          color: cellStyle.color,
+          font: cellStyle.font,
+          fontKerning: cellStyle.fontKerning,
+          letterSpacing: cellStyle.letterSpacing,
+          lineHeight: cellStyle.lineHeight,
+          opacity: String(rowOpacity),
+        })
+        layer.appendChild(flyer)
+
+        const startX = rect.left
+        const startY = rect.top
+        const targetX = startX + deltaX
+        const targetY = startY + deltaY
+        const dx = deltaX
+        const dy = deltaY
+        const bend = Math.max(2.5 * parseFloat(cellStyle.fontSize), Math.min(8 * parseFloat(cellStyle.fontSize), Math.hypot(dx, dy) * 0.16))
+        flights.push({
+          element: flyer,
+          startX,
+          startY,
+          controlX: startX + dx * 0.52 + (startX - targetX) * 0.1,
+          controlY: Math.min(startY, targetY) - bend,
+          targetX,
+          targetY,
+          progress: { value: 0 },
+        })
+      }
+
+      offset = nextOffset
+    }
+
+    textNode = walker.nextNode()
+  }
+
+  return flights.sort((a, b) => (b.startX - a.startX) || (a.startY - b.startY))
+}
+
+function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRoute, onProjectDetailReady, onTransitionStateChange }) {
   const pageRef = useRef(null)
   const timelineRef = useRef(null)
   const isAnimatingRef = useRef(false)
@@ -101,8 +165,10 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
     if (!page || !selectedRow || !columnHeadings || isAnimatingRef.current) return
 
     const selectedRect = selectedRow.getBoundingClientRect()
-    const headingRect = columnHeadings.getBoundingClientRect()
-    const rise = headingRect.top - selectedRect.top
+    const pageRect = page.getBoundingClientRect()
+    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
+    const detailHeaderGap = parseFloat(getComputedStyle(page).getPropertyValue('--detail-header-gap')) * rootFontSize
+    const rise = pageRect.top + detailHeaderGap - selectedRect.top
     const otherRows = [...page.querySelectorAll('.work-row')].filter((row) => row !== selectedRow)
 
     isAnimatingRef.current = true
@@ -126,6 +192,10 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
 
   const visibleDetailProjectId = routeProjectId || null
 
+  useLayoutEffect(() => {
+    if (visibleDetailProjectId) onProjectDetailReady?.()
+  }, [onProjectDetailReady, visibleDetailProjectId])
+
   useEffect(() => {
     if (!visibleDetailProjectId) return undefined
     onTransitionStateChange(false)
@@ -141,7 +211,12 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
   const detailProject = projects.find((project) => project.id === visibleDetailProjectId)
 
   return (
-    <section className={`work-page${detailProject ? ' work-page--detail' : ''}${isAnimating ? ' work-page--animating' : ''}`} aria-label={detailProject ? `${detailProject.client} project` : 'All work'} ref={pageRef} aria-busy={isAnimating}>
+    <section
+      className={`work-page${detailProject ? ' work-page--detail' : ''}${isAnimating ? ' work-page--animating' : ''}`}
+      aria-label={detailProject ? `${detailProject.client} project` : 'All work'}
+      ref={pageRef}
+      aria-busy={isAnimating}
+    >
       {detailProject ? (
         <>
           <div key="project-metadata" className="project-detail__metadata" data-project-id={detailProject.id}>
@@ -160,7 +235,7 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
           </div>
         </>
       ) : (
-        <>
+        <div className="work-page__index">
           <div key="project-columns" className="project-columns" aria-hidden="true">
             <span>no.</span>
             <span>client</span>
@@ -178,7 +253,7 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
               beginProject(projectId)
             }}
           />
-        </>
+        </div>
       )}
     </section>
   )
@@ -283,9 +358,9 @@ function InfoPage() {
       </div>
 
       <div className="info-column info-column--portrait">
-        <img className="portrait-image" src={`${import.meta.env.BASE_URL}headshot.jpeg`} alt="Portrait of Martin Gama Jr" />
+        <img className="portrait-image" src={`${import.meta.env.BASE_URL}headshot.jpeg`} alt="Portrait of Martin Gama Jr" width="5079" height="3386" decoding="async" />
         <p className="portrait-caption">
-          Martin Gama Jr is a Mexican-American multimedia creative and full stack developer based in Los Angeles County.
+          Martin Gama Jr is a Mexican-American multimedia creative and web developer based in Los Angeles County.
         </p>
       </div>
     </section>
@@ -297,8 +372,15 @@ function App() {
   const [isInverted, setIsInverted] = useState(false)
   const [activeProject, setActiveProject] = useState(() => getProjectFromRoute() || '000')
   const [currentPage, setCurrentPage] = useState(getCurrentPage)
+  const pageContentRef = useRef(null)
+  const pageNavigationTimelineRef = useRef(null)
+  const pageTransitionGuardRef = useRef(false)
+  const pageFadeInPendingRef = useRef(false)
+  const [pageFadeInKey, setPageFadeInKey] = useState(0)
+  const [isPageTransitioning, setIsPageTransitioning] = useState(false)
   const homePageRef = useRef(null)
   const homeTimelineRef = useRef(null)
+  const homeFlightLayerRef = useRef(null)
   const homeTransitionRef = useRef(false)
   const [isHomeTransitioning, setIsHomeTransitioning] = useState(false)
   const [isProjectTransitioning, setIsProjectTransitioning] = useState(false)
@@ -307,6 +389,27 @@ function App() {
     const intervalId = window.setInterval(() => setTime(getLosAngelesTime()), 1000)
     return () => window.clearInterval(intervalId)
   }, [])
+
+  useLayoutEffect(() => {
+    if (!pageFadeInPendingRef.current) return
+    const pageContent = pageContentRef.current
+    if (!pageContent) return
+
+    pageNavigationTimelineRef.current?.kill()
+    pageNavigationTimelineRef.current = gsap.fromTo(pageContent,
+      { autoAlpha: 0 },
+      {
+        autoAlpha: 1,
+        duration: 0.28,
+        ease: 'power1.out',
+        onComplete: () => {
+          pageFadeInPendingRef.current = false
+          pageTransitionGuardRef.current = false
+          setIsPageTransitioning(false)
+        },
+      },
+    )
+  }, [pageFadeInKey])
 
   useEffect(() => {
     const updatePageFromHistory = () => {
@@ -323,11 +426,34 @@ function App() {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
     const destination = `${import.meta.env.BASE_URL}#${path}`
-    window.history.pushState({}, '', destination)
-    setIsHomeTransitioning(false)
-    setIsProjectTransitioning(false)
-    setCurrentPage(getCurrentPage())
-    setActiveProject(getProjectFromRoute() || '000')
+    if (window.location.hash === `#${path}` || pageTransitionGuardRef.current) return
+
+    pageTransitionGuardRef.current = true
+    setIsPageTransitioning(true)
+    const pageContent = pageContentRef.current
+
+    const commitPageChange = () => {
+      window.history.pushState({}, '', destination)
+      setIsHomeTransitioning(false)
+      setIsProjectTransitioning(false)
+      setCurrentPage(getCurrentPage())
+      setActiveProject(getProjectFromRoute() || '000')
+      pageFadeInPendingRef.current = true
+      setPageFadeInKey((key) => key + 1)
+    }
+
+    if (!pageContent) {
+      commitPageChange()
+      return
+    }
+
+    pageNavigationTimelineRef.current?.kill()
+    pageNavigationTimelineRef.current = gsap.to(pageContent, {
+      autoAlpha: 0,
+      duration: 0.18,
+      ease: 'power1.out',
+      onComplete: commitPageChange,
+    })
   }
 
   const openProjectRoute = useCallback((projectId) => {
@@ -336,6 +462,11 @@ function App() {
     setIsProjectTransitioning(false)
     setCurrentPage('work')
     setActiveProject(projectId)
+  }, [])
+
+  const releaseHomeFlightLayer = useCallback(() => {
+    homeFlightLayerRef.current?.remove()
+    homeFlightLayerRef.current = null
   }, [])
 
   function openProjectFromHome(event, projectId) {
@@ -355,10 +486,28 @@ function App() {
     setIsProjectTransitioning(true)
     setActiveProject(projectId)
 
-    const selectedTop = selectedRow.getBoundingClientRect().top
-    const headerBottom = document.querySelector('.site-header')?.getBoundingClientRect().bottom || 0
     const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
-    const detailTop = headerBottom + rootFontSize * 1.5
+    const detailGap = parseFloat(getComputedStyle(page).getPropertyValue('--detail-header-gap')) * rootFontSize
+    const selectedRect = selectedRow.getBoundingClientRect()
+    const targetRowLeft = (window.innerWidth - selectedRect.width) / 2
+    const targetRowTop = page.getBoundingClientRect().top + detailGap
+    const deltaX = targetRowLeft - selectedRect.left
+    const deltaY = targetRowTop - selectedRect.top
+    const layer = document.createElement('div')
+    layer.className = 'home-letter-flight-layer'
+    layer.setAttribute('aria-hidden', 'true')
+    document.body.appendChild(layer)
+    homeFlightLayerRef.current = layer
+
+    const flights = createLetterFlights(selectedRow, layer, deltaX, deltaY)
+    if (flights.length === 0) {
+      layer.remove()
+      homeFlightLayerRef.current = null
+      homeTransitionRef.current = false
+      openProjectRoute(projectId)
+      return
+    }
+
     const otherRows = [...page.querySelectorAll('.work-row')].filter((row) => row !== selectedRow)
     const fadeAway = [heading, ...otherRows, page.querySelector('.home-preview'), page.querySelector('.brand-description')]
       .filter(Boolean)
@@ -370,11 +519,41 @@ function App() {
         openProjectRoute(projectId)
       },
     })
-      .to(fadeAway, { autoAlpha: 0, duration: 0.42, ease: 'power1.out' }, 0)
-      .to(selectedRow, { y: detailTop - selectedTop, duration: 0.9, ease: 'power3.inOut' }, 0)
+      .set([...fadeAway, selectedRow], { transition: 'none' }, 0)
+      .to(fadeAway, { autoAlpha: 0, duration: 0.363375, ease: 'power1.out' }, 0)
+      .to(selectedRow, { autoAlpha: 0, duration: 0.0855, ease: 'none' }, 0)
+
+    const characterDuration = 0.7695
+    const characterStagger = 0.0149625
+    flights.forEach((flight, index) => {
+      homeTimelineRef.current.to(flight.progress, {
+        value: 1,
+        duration: characterDuration,
+        ease: 'power2.in',
+        onUpdate: () => {
+          const t = flight.progress.value
+          const inverse = 1 - t
+          const x = inverse * inverse * flight.startX
+            + 2 * inverse * t * flight.controlX
+            + t * t * flight.targetX
+          const y = inverse * inverse * flight.startY
+            + 2 * inverse * t * flight.controlY
+            + t * t * flight.targetY
+          gsap.set(flight.element, {
+            x: x - flight.startX,
+            y: y - flight.startY,
+          })
+        },
+      }, index * characterStagger)
+    })
+
+    homeTimelineRef.current.to({}, { duration: 0.3 })
   }
 
-  useEffect(() => () => homeTimelineRef.current?.kill(), [])
+  useEffect(() => () => {
+    homeTimelineRef.current?.kill()
+    homeFlightLayerRef.current?.remove()
+  }, [])
 
   const homeHref = `${import.meta.env.BASE_URL}#/`
   const workHref = `${import.meta.env.BASE_URL}#/work`
@@ -394,13 +573,17 @@ function App() {
         </a>
       </header>
 
-      <section className={`page-content page-content--${currentPage}${isHomeTransitioning ? ' home-page--transitioning' : ''}`} id="top" aria-label="Portfolio" ref={currentPage === 'home' ? homePageRef : undefined}>
+      <section className={`page-content page-content--${currentPage}${isHomeTransitioning ? ' home-page--transitioning' : ''}${isPageTransitioning ? ' page-content--transitioning' : ''}`} id="top" aria-label="Portfolio" ref={(element) => {
+        pageContentRef.current = element
+        if (currentPage === 'home') homePageRef.current = element
+      }}>
         {currentPage === 'work' ? (
           <WorkPage
             activeProject={activeProject}
             setActiveProject={setActiveProject}
             routeProjectId={getProjectFromRoute()}
             onProjectRoute={openProjectRoute}
+            onProjectDetailReady={releaseHomeFlightLayer}
             onTransitionStateChange={setIsProjectTransitioning}
           />
         ) : currentPage === 'info' ? (

@@ -14,6 +14,8 @@
   --brand-gradient-d: #f7f7f7f5;
   --brand-gradient-e: #dbdbdbcb;
   --utility-font-size: clamp(1.1rem, 1.176vw, 1.65rem);
+  --work-list-width: min(34rem, 42vw);
+  --detail-header-gap: 0.75rem;
   --project-columns: 3rem minmax(0, 1.55fr) minmax(0, 1.2fr) 3rem 0.75rem;
   --project-column-gap: clamp(0.35rem, 0.9vw, 0.75rem);
   position: relative;
@@ -191,15 +193,26 @@
   overscroll-behavior: contain;
 }
 
-.page-content--work { justify-content: flex-start; }
+.page-content--work { justify-content: center; align-items: stretch; }
 .page-content--info { justify-content: flex-start; }
 
 .work-page {
-  width: min(100%, 34rem);
-  margin-top: 1.5rem;
-  padding-bottom: 1.5rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 0 100%;
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
   font-size: var(--utility-font-size);
   line-height: 1.2;
+}
+
+.work-page__index {
+  width: min(100%, var(--work-list-width));
 }
 
 .project-columns {
@@ -215,14 +228,18 @@
 
 .work-page .work-list { margin-top: 0.5rem; }
 
-.work-page--detail { width: 100%; }
+.work-page--detail {
+  display: block;
+  width: 100%;
+}
 
 .project-detail__metadata {
   display: grid;
   grid-template-columns: var(--project-columns);
   column-gap: var(--project-column-gap);
   align-items: center;
-  width: min(100%, 34rem);
+  width: min(100%, var(--work-list-width));
+  margin: var(--detail-header-gap) auto 0;
   color: var(--brand-color);
   font-size: var(--utility-font-size);
   line-height: 1.2;
@@ -234,7 +251,7 @@
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   align-items: center;
   column-gap: clamp(2rem, 4.5vw, 4.5rem);
-  margin-top: 0.75rem;
+  margin-top: 1.5rem;
 }
 
 .project-detail__image {
@@ -433,13 +450,13 @@
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, var(--work-list-width)) minmax(0, 1fr);
   align-items: center;
   gap: clamp(2rem, 4.5vw, 4.5rem);
 }
 
 .featured-work {
-  width: min(100%, 34rem);
+  width: 100%;
   color: var(--brand-color);
   font-size: var(--utility-font-size);
   line-height: 1.2;
@@ -448,7 +465,7 @@
 .home-preview {
   display: block;
   justify-self: end;
-  width: min(60vw, 100%);
+  width: min(50vw, 100%);
 }
 
 .home-preview--missing {
@@ -464,6 +481,24 @@
   height: auto;
   max-height: 70svh;
   object-fit: contain;
+}
+
+.home-letter-flight-layer {
+  position: fixed;
+  z-index: 1001;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-letter-flight {
+  position: absolute;
+  display: block;
+  margin: 0;
+  padding: 0;
+  white-space: pre;
+  transform-origin: center;
+  will-change: transform, opacity;
 }
 
 .home-preview__fallback {
@@ -501,10 +536,9 @@
 .work-list:has(.work-row:hover),
 .work-list:has(.work-row:focus-visible) { gap: 0.125rem; }
 
-.work-page--animating .work-list { gap: 0.25rem; }
+.work-page--animating .work-list { gap: 0.125rem; }
 .work-page--animating .work-list { pointer-events: none; }
-.work-page--animating .work-row:hover,
-.work-page--animating .work-row:focus-visible { margin-block: 0; }
+.work-page--animating .work-row--active { margin-block: 0.25rem; }
 
 .work-row {
   display: grid;
@@ -538,9 +572,8 @@
 
 .home-page--transitioning .home-hero,
 .home-page--transitioning .brand-description { pointer-events: none; }
-.home-page--transitioning .work-list { gap: 0.25rem; }
-.home-page--transitioning .work-row:hover,
-.home-page--transitioning .work-row:focus-visible { margin-block: 0; }
+.home-page--transitioning .work-list { gap: 0.125rem; }
+.home-page--transitioning .work-row--active { margin-block: 0.25rem; }
 
 .work-row__year { text-align: right; }
 .work-row__marker { text-align: right; }
@@ -606,7 +639,7 @@
 }
 
 @media (max-width: 32.5rem) {
-  .portfolio { --side-padding: 1.25rem; }
+  .portfolio { --side-padding: 1.25rem; --work-list-width: 100%; }
   .site-header { grid-template-columns: 1fr auto; height: auto; min-height: 4.75rem; flex-basis: 4.75rem; }
   .brand { grid-column: 1; grid-row: 1; font-size: 1.6875rem; }
   .brand-description { font-size: var(--utility-font-size); }
