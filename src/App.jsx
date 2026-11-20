@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { gsap } from 'gsap'
 import { featuredProjects, projects } from './data/projects/index.js'
 import './App.css'
@@ -88,157 +89,185 @@ function HomeShowcase({ project, onProjectOpen }) {
   )
 }
 
-function createLetterFlights(sourceRow, layer, deltaX, deltaY) {
-  const flights = []
-  const rowOpacity = Number.parseFloat(getComputedStyle(sourceRow).opacity) || 1
-  const walker = document.createTreeWalker(sourceRow, NodeFilter.SHOW_TEXT)
-  let textNode = walker.nextNode()
-
-  while (textNode) {
-    const text = textNode.textContent || ''
-    const cell = textNode.parentElement
-    const cellStyle = getComputedStyle(cell)
-    const range = document.createRange()
-
-    for (let offset = 0; offset < text.length;) {
-      const character = String.fromCodePoint(text.codePointAt(offset))
-      const nextOffset = offset + character.length
-      range.setStart(textNode, offset)
-      range.setEnd(textNode, nextOffset)
-      const rect = range.getBoundingClientRect()
-
-      if (rect.height > 0 && !cell?.closest('.work-row__marker')) {
-        const flyer = document.createElement('span')
-        flyer.className = 'home-letter-flight'
-        flyer.textContent = character
-        flyer.setAttribute('aria-hidden', 'true')
-        Object.assign(flyer.style, {
-          left: `${rect.left}px`,
-          top: `${rect.top}px`,
-          color: cellStyle.color,
-          font: cellStyle.font,
-          fontKerning: cellStyle.fontKerning,
-          letterSpacing: cellStyle.letterSpacing,
-          lineHeight: cellStyle.lineHeight,
-          opacity: String(rowOpacity),
-        })
-        layer.appendChild(flyer)
-
-        const startX = rect.left
-        const startY = rect.top
-        const targetX = startX + deltaX
-        const targetY = startY + deltaY
-        const dx = deltaX
-        const dy = deltaY
-        const bend = Math.max(2.5 * parseFloat(cellStyle.fontSize), Math.min(8 * parseFloat(cellStyle.fontSize), Math.hypot(dx, dy) * 0.16))
-        flights.push({
-          element: flyer,
-          startX,
-          startY,
-          controlX: startX + dx * 0.52 + (startX - targetX) * 0.1,
-          controlY: Math.min(startY, targetY) - bend,
-          targetX,
-          targetY,
-          progress: { value: 0 },
-        })
-      }
-
-      offset = nextOffset
-    }
-
-    textNode = walker.nextNode()
-  }
-
-  return flights.sort((a, b) => (b.startX - a.startX) || (a.startY - b.startY))
-}
-
-function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRoute, onProjectDetailReady, onTransitionStateChange }) {
-  const pageRef = useRef(null)
-  const timelineRef = useRef(null)
-  const isAnimatingRef = useRef(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-
-  const beginProject = useCallback((projectId) => {
-    const page = pageRef.current
-    const selectedRow = page?.querySelector(`[data-project-id="${projectId}"]`)
-    const columnHeadings = page?.querySelector('.project-columns')
-    if (!page || !selectedRow || !columnHeadings || isAnimatingRef.current) return
-
-    const selectedRect = selectedRow.getBoundingClientRect()
-    const pageRect = page.getBoundingClientRect()
-    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
-    const detailHeaderGap = parseFloat(getComputedStyle(page).getPropertyValue('--detail-header-gap')) * rootFontSize
-    const rise = pageRect.top + detailHeaderGap - selectedRect.top
-    const otherRows = [...page.querySelectorAll('.work-row')].filter((row) => row !== selectedRow)
-
-    isAnimatingRef.current = true
-    setActiveProject(projectId)
-    setIsAnimating(true)
-    onTransitionStateChange(true)
-    timelineRef.current?.kill()
-    timelineRef.current = gsap.timeline({
-      onComplete: () => {
-        isAnimatingRef.current = false
-        setIsAnimating(false)
-        onProjectRoute?.(projectId)
-      },
-    })
-      .to(columnHeadings, { autoAlpha: 0, duration: 0.28, ease: 'power1.out' }, 0)
-      .to(otherRows, { autoAlpha: 0, duration: 0.32, ease: 'power1.out' }, 0)
-      .to(selectedRow, { y: rise, duration: 0.78, ease: 'power3.inOut' }, 0)
-  }, [onProjectRoute, onTransitionStateChange, setActiveProject])
-
-  useEffect(() => () => timelineRef.current?.kill(), [])
-
-  const visibleDetailProjectId = routeProjectId || null
-
-  useLayoutEffect(() => {
-    if (visibleDetailProjectId) onProjectDetailReady?.()
-  }, [onProjectDetailReady, visibleDetailProjectId])
+function ProjectCarousel({ project, isInverted }) {
+  const pages = project.pages?.length ? project.pages : project.image ? [project.image] : []
+  const [pageIndex, setPageIndex] = useState(0)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   useEffect(() => {
-    if (!visibleDetailProjectId) return undefined
-    onTransitionStateChange(false)
-    const body = pageRef.current?.querySelector('.project-detail__body')
-    if (!body) return undefined
-    const reveal = gsap.fromTo(body,
-      { autoAlpha: 0, y: 12 },
-      { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power2.out' },
-    )
-    return () => reveal.kill()
-  }, [onTransitionStateChange, visibleDetailProjectId])
+    if (!isFullscreen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsFullscreen(false)
+      if (event.key === 'ArrowLeft' && pages.length > 1) {
+        event.preventDefault()
+        setPageIndex((index) => (index - 1 + pages.length) % pages.length)
+      }
+      if (event.key === 'ArrowRight' && pages.length > 1) {
+        event.preventDefault()
+        setPageIndex((index) => (index + 1) % pages.length)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isFullscreen, pages.length])
+
+  if (!pages.length) {
+    return <div className="project-detail__image project-detail__image--missing">Add a project image to this entry</div>
+  }
+
+  const setRelativePage = (offset) => {
+    setPageIndex((index) => (index + offset + pages.length) % pages.length)
+  }
+  const currentPage = pages[pageIndex]
+  const pageAlt = pages.length > 1
+    ? `${project.client} ${project.project.toLowerCase()} page ${pageIndex + 1} of ${pages.length}`
+    : project.imageAlt || `${project.client} project`
+  const counter = `${String(pageIndex + 1).padStart(2, '0')} / ${String(pages.length).padStart(2, '0')}`
+  const imageClass = `project-carousel__image${pages.length > 1 ? ' project-carousel__image--multiple' : ''}`
+
+  return (
+    <div className={`project-carousel${pages.length > 1 ? ' project-carousel--multiple' : ''}`}>
+      <div className={`project-carousel__stage${pages.length > 1 ? ' project-carousel__stage--multiple' : ''}`}>
+        <button className="project-carousel__open" type="button" onClick={() => setIsFullscreen(true)} aria-label={`Open ${project.client} image fullscreen`}>
+          <img className={imageClass} src={currentPage} alt={pageAlt} />
+        </button>
+        {pages.length > 1 && (
+          <>
+            <button className="project-carousel__arrow project-carousel__arrow--previous" type="button" onClick={() => setRelativePage(-1)} aria-label="Previous page">‹</button>
+            <button className="project-carousel__arrow project-carousel__arrow--next" type="button" onClick={() => setRelativePage(1)} aria-label="Next page">›</button>
+          </>
+        )}
+      </div>
+      {pages.length > 1 && <div className="project-carousel__count" aria-live="polite">{counter}</div>}
+      {isFullscreen && createPortal(
+        <div className={`project-lightbox${isInverted ? ' project-lightbox--inverted' : ''}${pages.length === 1 ? ' project-lightbox--single' : ''}`} role="dialog" aria-modal="true" aria-label={`${project.client} image viewer`} onClick={(event) => {
+          if (event.target === event.currentTarget) setIsFullscreen(false)
+        }}>
+          <button className="project-lightbox__close" type="button" onClick={() => setIsFullscreen(false)} aria-label="Close fullscreen viewer">×</button>
+          {pages.length > 1 && <button className="project-lightbox__arrow" type="button" onClick={() => setRelativePage(-1)} aria-label="Previous page">‹</button>}
+          <figure className="project-lightbox__figure">
+            <img className="project-lightbox__image" src={currentPage} alt={pageAlt} />
+            {pages.length > 1 && <figcaption>{counter}</figcaption>}
+          </figure>
+          {pages.length > 1 && <button className="project-lightbox__arrow" type="button" onClick={() => setRelativePage(1)} aria-label="Next page">›</button>}
+        </div>,
+        document.body,
+      )}
+    </div>
+  )
+}
+
+function ProjectMasonry({ project, isInverted }) {
+  const images = project.gallery || []
+  const [selectedIndex, setSelectedIndex] = useState(null)
+  const isOpen = selectedIndex !== null
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setSelectedIndex(null)
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        setSelectedIndex((index) => (index - 1 + images.length) % images.length)
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        setSelectedIndex((index) => (index + 1) % images.length)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, images.length])
+
+  if (!images.length) {
+    return <div className="project-detail__image project-detail__image--missing">Add project photos to this entry</div>
+  }
+
+  const selectedImage = isOpen ? images[selectedIndex] : null
+  const moveSelection = (offset) => {
+    setSelectedIndex((index) => (index + offset + images.length) % images.length)
+  }
+  const counter = isOpen
+    ? `${String(selectedIndex + 1).padStart(2, '0')} / ${String(images.length).padStart(2, '0')}`
+    : ''
+
+  return (
+    <div className="project-masonry">
+      {images.map((image, index) => (
+        <button
+          className="project-masonry__item"
+          type="button"
+          key={image.src}
+          onClick={() => setSelectedIndex(index)}
+          aria-label={`Open image ${index + 1} of ${images.length} from ${project.client}`}
+        >
+          <img src={image.src} alt={image.alt} loading={index > 1 ? 'lazy' : 'eager'} />
+        </button>
+      ))}
+      {isOpen && createPortal(
+        <div className={`project-lightbox${isInverted ? ' project-lightbox--inverted' : ''}`} role="dialog" aria-modal="true" aria-label={`${project.client} photo viewer`} onClick={(event) => {
+          if (event.target === event.currentTarget) setSelectedIndex(null)
+        }}>
+          <button className="project-lightbox__close" type="button" onClick={() => setSelectedIndex(null)} aria-label="Close fullscreen viewer">×</button>
+          <button className="project-lightbox__arrow" type="button" onClick={() => moveSelection(-1)} aria-label="Previous image">‹</button>
+          <figure className="project-lightbox__figure">
+            <img className="project-lightbox__image" src={selectedImage.src} alt={selectedImage.alt} />
+            <figcaption>{counter}</figcaption>
+          </figure>
+          <button className="project-lightbox__arrow" type="button" onClick={() => moveSelection(1)} aria-label="Next image">›</button>
+        </div>,
+        document.body,
+      )}
+    </div>
+  )
+}
+
+function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectOpen, isInverted }) {
+  const visibleDetailProjectId = routeProjectId || null
 
   const detailProject = projects.find((project) => project.id === visibleDetailProjectId)
 
   return (
     <section
-      className={`work-page${detailProject ? ' work-page--detail' : ''}${isAnimating ? ' work-page--animating' : ''}`}
+      className={`work-page${detailProject ? ' work-page--detail' : ''}${detailProject?.gallery?.length ? ' work-page--detail-gallery' : ''}`}
       aria-label={detailProject ? `${detailProject.client} project` : 'All work'}
-      ref={pageRef}
-      aria-busy={isAnimating}
     >
       {detailProject ? (
         <>
-          <div key="project-metadata" className="project-detail__metadata" data-project-id={detailProject.id}>
-            <span>{detailProject.id}</span>
-            <span>{detailProject.client}</span>
-            <span>{detailProject.project}</span>
-            <span className="work-row__year">{detailProject.year}</span>
-          </div>
-          <div className="project-detail__body">
-            {detailProject.image ? (
-              <img className="project-detail__image" src={detailProject.image} alt={detailProject.imageAlt || `${detailProject.client} project`} />
-            ) : (
-              <div className="project-detail__image project-detail__image--missing">Add a project image to this entry</div>
-            )}
+          <div className="project-detail__copy">
+            <div key="project-metadata" className="project-detail__metadata" data-project-id={detailProject.id}>
+              <span className="project-detail__index">{detailProject.id}</span>
+              <span className="project-detail__title">{detailProject.client}</span>
+              <span className="project-detail__category">{detailProject.project}</span>
+              <span className="project-detail__year">{detailProject.year}</span>
+            </div>
             <p className="project-detail__description">{detailProject.description || 'Project description coming soon.'}</p>
+          </div>
+          <div className="project-detail__media">
+            {detailProject.gallery?.length
+              ? <ProjectMasonry key={detailProject.id} project={detailProject} isInverted={isInverted} />
+              : <ProjectCarousel key={detailProject.id} project={detailProject} isInverted={isInverted} />}
           </div>
         </>
       ) : (
         <div className="work-page__index">
           <div key="project-columns" className="project-columns" aria-hidden="true">
             <span>no.</span>
-            <span>client</span>
+            <span>title</span>
             <span>project</span>
             <span>year</span>
             <span />
@@ -247,11 +276,7 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectRo
             entries={projects}
             activeProject={activeProject}
             setActiveProject={setActiveProject}
-            interactionDisabled={isAnimating}
-            onProjectOpen={(event, projectId) => {
-              event.preventDefault()
-              beginProject(projectId)
-            }}
+            onProjectOpen={onProjectOpen}
           />
         </div>
       )}
@@ -290,79 +315,75 @@ function InfoPage() {
 
   return (
     <section className="info-page" aria-label="About Martin Gama Jr">
-      <nav className={`info-nav${isMenuHovered ? ' info-nav--hovering' : ''}`} aria-label="Info sections">
-        <div className="info-nav__list" onPointerLeave={() => setIsMenuHovered(false)}>
-          {sectionNames.map((name) => {
-            const isActive = activeSection === name
-            return (
-              <button
-                className={`info-nav__item${isActive ? ' info-nav__item--active' : ''}`}
-                type="button"
-                key={name}
-                aria-current={isActive ? 'true' : undefined}
-                onClick={() => setActiveSection(name)}
-                onPointerEnter={() => {
-                  setActiveSection(name)
-                  setIsMenuHovered(true)
-                }}
-                onFocus={() => setActiveSection(name)}
-              >
-                <span>{name}</span>
-                <span className="info-nav__marker" aria-hidden="true">{'<'}</span>
-              </button>
-            )
-          })}
+      <div className="info-overview">
+        <nav className={`info-nav${isMenuHovered ? ' info-nav--hovering' : ''}`} aria-label="Info sections">
+          <div className="info-nav__list" onPointerLeave={() => setIsMenuHovered(false)}>
+            {sectionNames.map((name) => {
+              const isActive = activeSection === name
+              return (
+                <button
+                  className={`info-nav__item${isActive ? ' info-nav__item--active' : ''}`}
+                  type="button"
+                  key={name}
+                  aria-current={isActive ? 'true' : undefined}
+                  onClick={() => setActiveSection(name)}
+                  onPointerEnter={() => {
+                    setActiveSection(name)
+                    setIsMenuHovered(true)
+                  }}
+                  onFocus={() => setActiveSection(name)}
+                >
+                  <span>{name}</span>
+                  <span className="info-nav__marker" aria-hidden="true">{'<'}</span>
+                </button>
+              )
+            })}
+          </div>
+        </nav>
+
+        <div className="info-panel" aria-live="polite">
+          {activeSection === 'education' && (
+            <div className="education-list">
+              <EducationEntry school="University of California San Diego" degree="B.S Mathematics-Computer Science" years="2024-2026" />
+              <EducationEntry school="Pasadena City College" degree="A.S-T Computer Science" years="2022-2024" />
+            </div>
+          )}
+          {activeSection === 'experience' && (
+            <div className="experience-list">
+              <ExperienceEntry organization="KSDT Radio" role="Computer Engineer / Web Developer Intern">
+                Developed and maintained responsive front-end components using React.js and CSS to execute key website redesign initiatives for KSDT Radio. Collaborated on UI/UX improvements that modernized the digital platform, streamlined navigation, and enhanced overall listener engagement.
+              </ExperienceEntry>
+              <ExperienceEntry organization="Out The Archive" role="Creative Space Interdisciplinary Collaborator">
+                Collaborated within a student-led creative collective to conceptualize, style, and produce an original fashion short film from ideation to execution. Designed and showcased a custom garment look for the organization’s live runway show, blending visual storytelling with hands-on fashion design.
+              </ExperienceEntry>
+              <ExperienceEntry organization="Pasadena City College" role="Math Tutor">
+                Translated complex concepts into accessible, step-by-step frameworks for STEM students at Pasadena City College. Leveraged active listening and adaptable communication to diagnose learning gaps, strengthen technical fluency, and accelerate student performance.
+              </ExperienceEntry>
+            </div>
+          )}
+          {activeSection === 'skills' && (
+            <dl className="info-pairs">
+              <dt>design</dt>
+              <dd>Figma, Affinity Designer, TouchDesigner</dd>
+              <dt>code</dt>
+              <dd>HTML, CSS, Python, C++, ReactJS, Git, LaTeX</dd>
+            </dl>
+          )}
+          {activeSection === 'connect' && (
+            <dl className="info-pairs info-pairs--connect">
+              <dt>email</dt>
+              <dd><a href="mailto:martingama2100@gmail.com">martingama2100@gmail.com</a></dd>
+              <dt>linkedin</dt>
+              <dd><a href="https://www.linkedin.com/in/jrmartingama/" target="_blank" rel="noreferrer">jrmartingama</a></dd>
+              <dt>github</dt>
+              <dd><a href="https://github.com/marzsh11" target="_blank" rel="noreferrer">marzsh11</a></dd>
+              <dt>instagram</dt>
+              <dd><a href="https://www.instagram.com/icedlattepounder/" target="_blank" rel="noreferrer">icedlattepounder</a></dd>
+            </dl>
+          )}
         </div>
-      </nav>
-
-      <div className="info-panel" aria-live="polite">
-        {activeSection === 'education' && (
-          <div className="education-list">
-            <EducationEntry school="University of California San Diego" degree="B.S Mathematics-Computer Science" years="2024-2026" />
-            <EducationEntry school="Pasadena City College" degree="A.S-T Computer Science" years="2022-2024" />
-          </div>
-        )}
-        {activeSection === 'experience' && (
-          <div className="experience-list">
-            <ExperienceEntry organization="KSDT Radio" role="Computer Engineer / Web Developer Intern">
-              Developed and maintained responsive front-end components using React.js and CSS to execute key website redesign initiatives for KSDT Radio. Collaborated on UI/UX improvements that modernized the digital platform, streamlined navigation, and enhanced overall listener engagement.
-            </ExperienceEntry>
-            <ExperienceEntry organization="Out The Archive" role="Creative Space Interdisciplinary Collaborator">
-              Collaborated within a student-led creative collective to conceptualize, style, and produce an original fashion short film from ideation to execution. Designed and showcased a custom garment look for the organization’s live runway show, blending visual storytelling with hands-on fashion design.
-            </ExperienceEntry>
-            <ExperienceEntry organization="Pasadena City College" role="Math Tutor">
-              Translated complex concepts into accessible, step-by-step frameworks for STEM students at Pasadena City College. Leveraged active listening and adaptable communication to diagnose learning gaps, strengthen technical fluency, and accelerate student performance.
-            </ExperienceEntry>
-          </div>
-        )}
-        {activeSection === 'skills' && (
-          <dl className="info-pairs">
-            <dt>design</dt>
-            <dd>Figma, Affinity Designer, TouchDesigner</dd>
-            <dt>code</dt>
-            <dd>HTML, CSS, Python, C++, ReactJS, Git, LaTeX</dd>
-          </dl>
-        )}
-        {activeSection === 'connect' && (
-          <dl className="info-pairs info-pairs--connect">
-            <dt>email</dt>
-            <dd><a href="mailto:martingama2100@gmail.com">martingama2100@gmail.com</a></dd>
-            <dt>linkedin</dt>
-            <dd><a href="https://www.linkedin.com/in/jrmartingama/" target="_blank" rel="noreferrer">jrmartingama</a></dd>
-            <dt>github</dt>
-            <dd><a href="https://github.com/marzsh11" target="_blank" rel="noreferrer">marzsh11</a></dd>
-            <dt>instagram</dt>
-            <dd><a href="https://www.instagram.com/icedlattepounder/" target="_blank" rel="noreferrer">icedlattepounder</a></dd>
-          </dl>
-        )}
       </div>
 
-      <div className="info-column info-column--portrait">
-        <img className="portrait-image" src={`${import.meta.env.BASE_URL}headshot.jpeg`} alt="Portrait of Martin Gama Jr" width="5079" height="3386" decoding="async" />
-        <p className="portrait-caption">
-          Martin Gama Jr is a Mexican-American multimedia creative and web developer based in Los Angeles County.
-        </p>
-      </div>
     </section>
   )
 }
@@ -370,6 +391,7 @@ function InfoPage() {
 function App() {
   const [time, setTime] = useState(getLosAngelesTime)
   const [isInverted, setIsInverted] = useState(false)
+  const [isContactExpanded, setIsContactExpanded] = useState(false)
   const [activeProject, setActiveProject] = useState(() => getProjectFromRoute() || '000')
   const [currentPage, setCurrentPage] = useState(getCurrentPage)
   const pageContentRef = useRef(null)
@@ -378,12 +400,6 @@ function App() {
   const pageFadeInPendingRef = useRef(false)
   const [pageFadeInKey, setPageFadeInKey] = useState(0)
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
-  const homePageRef = useRef(null)
-  const homeTimelineRef = useRef(null)
-  const homeFlightLayerRef = useRef(null)
-  const homeTransitionRef = useRef(false)
-  const [isHomeTransitioning, setIsHomeTransitioning] = useState(false)
-  const [isProjectTransitioning, setIsProjectTransitioning] = useState(false)
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setTime(getLosAngelesTime()), 1000)
@@ -413,8 +429,7 @@ function App() {
 
   useEffect(() => {
     const updatePageFromHistory = () => {
-      setIsHomeTransitioning(false)
-      setIsProjectTransitioning(false)
+      if (pageContentRef.current) pageContentRef.current.scrollTop = 0
       setCurrentPage(getCurrentPage())
       setActiveProject(getProjectFromRoute() || '000')
     }
@@ -433,9 +448,8 @@ function App() {
     const pageContent = pageContentRef.current
 
     const commitPageChange = () => {
+      if (pageContentRef.current) pageContentRef.current.scrollTop = 0
       window.history.pushState({}, '', destination)
-      setIsHomeTransitioning(false)
-      setIsProjectTransitioning(false)
       setCurrentPage(getCurrentPage())
       setActiveProject(getProjectFromRoute() || '000')
       pageFadeInPendingRef.current = true
@@ -456,135 +470,40 @@ function App() {
     })
   }
 
-  const openProjectRoute = useCallback((projectId) => {
-    window.history.pushState({}, '', `${import.meta.env.BASE_URL}#/work/${projectId}`)
-    setIsHomeTransitioning(false)
-    setIsProjectTransitioning(false)
-    setCurrentPage('work')
-    setActiveProject(projectId)
-  }, [])
-
-  const releaseHomeFlightLayer = useCallback(() => {
-    homeFlightLayerRef.current?.remove()
-    homeFlightLayerRef.current = null
-  }, [])
-
-  function openProjectFromHome(event, projectId) {
-    event.preventDefault()
-    if (homeTransitionRef.current) return
-
-    const page = homePageRef.current
-    const selectedRow = page?.querySelector(`[data-project-id="${projectId}"]`)
-    const heading = page?.querySelector('.featured-heading')
-    if (!page || !selectedRow || !heading) {
-      openProjectRoute(projectId)
-      return
-    }
-
-    homeTransitionRef.current = true
-    setIsHomeTransitioning(true)
-    setIsProjectTransitioning(true)
-    setActiveProject(projectId)
-
-    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
-    const detailGap = parseFloat(getComputedStyle(page).getPropertyValue('--detail-header-gap')) * rootFontSize
-    const selectedRect = selectedRow.getBoundingClientRect()
-    const targetRowLeft = (window.innerWidth - selectedRect.width) / 2
-    const targetRowTop = page.getBoundingClientRect().top + detailGap
-    const deltaX = targetRowLeft - selectedRect.left
-    const deltaY = targetRowTop - selectedRect.top
-    const layer = document.createElement('div')
-    layer.className = 'home-letter-flight-layer'
-    layer.setAttribute('aria-hidden', 'true')
-    document.body.appendChild(layer)
-    homeFlightLayerRef.current = layer
-
-    const flights = createLetterFlights(selectedRow, layer, deltaX, deltaY)
-    if (flights.length === 0) {
-      layer.remove()
-      homeFlightLayerRef.current = null
-      homeTransitionRef.current = false
-      openProjectRoute(projectId)
-      return
-    }
-
-    const otherRows = [...page.querySelectorAll('.work-row')].filter((row) => row !== selectedRow)
-    const fadeAway = [heading, ...otherRows, page.querySelector('.home-preview'), page.querySelector('.brand-description')]
-      .filter(Boolean)
-
-    homeTimelineRef.current?.kill()
-    homeTimelineRef.current = gsap.timeline({
-      onComplete: () => {
-        homeTransitionRef.current = false
-        openProjectRoute(projectId)
-      },
-    })
-      .set([...fadeAway, selectedRow], { transition: 'none' }, 0)
-      .to(fadeAway, { autoAlpha: 0, duration: 0.363375, ease: 'power1.out' }, 0)
-      .to(selectedRow, { autoAlpha: 0, duration: 0.0855, ease: 'none' }, 0)
-
-    const characterDuration = 0.7695
-    const characterStagger = 0.0149625
-    flights.forEach((flight, index) => {
-      homeTimelineRef.current.to(flight.progress, {
-        value: 1,
-        duration: characterDuration,
-        ease: 'power2.in',
-        onUpdate: () => {
-          const t = flight.progress.value
-          const inverse = 1 - t
-          const x = inverse * inverse * flight.startX
-            + 2 * inverse * t * flight.controlX
-            + t * t * flight.targetX
-          const y = inverse * inverse * flight.startY
-            + 2 * inverse * t * flight.controlY
-            + t * t * flight.targetY
-          gsap.set(flight.element, {
-            x: x - flight.startX,
-            y: y - flight.startY,
-          })
-        },
-      }, index * characterStagger)
-    })
-
-    homeTimelineRef.current.to({}, { duration: 0.3 })
-  }
-
-  useEffect(() => () => {
-    homeTimelineRef.current?.kill()
-    homeFlightLayerRef.current?.remove()
-  }, [])
-
   const homeHref = `${import.meta.env.BASE_URL}#/`
   const workHref = `${import.meta.env.BASE_URL}#/work`
   const infoHref = `${import.meta.env.BASE_URL}#/info`
 
   return (
-    <main className={`portfolio${isInverted ? ' portfolio--inverted' : ''}${isProjectTransitioning ? ' portfolio--transitioning' : ''}`}>
+    <main className={`portfolio${isInverted ? ' portfolio--inverted' : ''}`}>
       <header className="site-header">
         <a className="brand" href={homeHref} onClick={(event) => navigate(event, '/')} aria-label="Martin Gama Jr home">Martin Gama Jr</a>
-        <nav className="primary-nav" aria-label="Main navigation">
-          <a href={workHref} onClick={(event) => navigate(event, '/work')} aria-current={currentPage === 'work' ? 'page' : undefined}>work</a>
-          <a href={infoHref} onClick={(event) => navigate(event, '/info')} aria-current={currentPage === 'info' ? 'page' : undefined}>info</a>
-        </nav>
-        <a className="contact" href="mailto:martingama2100@gmail.com">
-          <span className="contact__label">contact</span>
-          <span className="contact__email">martingama2100@gmail.com</span>
-        </a>
+        <div className="header-actions">
+          <nav className="primary-nav" aria-label="Main navigation">
+            <a href={workHref} onClick={(event) => navigate(event, '/work')} aria-current={currentPage === 'work' ? 'page' : undefined}>work</a>
+            <a href={infoHref} onClick={(event) => navigate(event, '/info')} aria-current={currentPage === 'info' ? 'page' : undefined}>info</a>
+          </nav>
+          <a
+            className="contact"
+            href="mailto:martingama2100@gmail.com"
+            onMouseEnter={() => setIsContactExpanded(true)}
+            onMouseLeave={() => setIsContactExpanded(false)}
+            onFocus={() => setIsContactExpanded(true)}
+            onBlur={() => setIsContactExpanded(false)}
+          >
+            <span className="contact__text">{isContactExpanded ? 'martingama2100@gmail.com' : 'contact'}</span>
+          </a>
+        </div>
       </header>
 
-      <section className={`page-content page-content--${currentPage}${isHomeTransitioning ? ' home-page--transitioning' : ''}${isPageTransitioning ? ' page-content--transitioning' : ''}`} id="top" aria-label="Portfolio" ref={(element) => {
-        pageContentRef.current = element
-        if (currentPage === 'home') homePageRef.current = element
-      }}>
+      <section className={`page-content page-content--${currentPage}${currentPage === 'work' && getProjectFromRoute() ? ' page-content--work-detail' : ''}${isPageTransitioning ? ' page-content--transitioning' : ''}`} id="top" aria-label="Portfolio" ref={pageContentRef}>
         {currentPage === 'work' ? (
           <WorkPage
             activeProject={activeProject}
             setActiveProject={setActiveProject}
             routeProjectId={getProjectFromRoute()}
-            onProjectRoute={openProjectRoute}
-            onProjectDetailReady={releaseHomeFlightLayer}
-            onTransitionStateChange={setIsProjectTransitioning}
+            onProjectOpen={(event, projectId) => navigate(event, `/work/${projectId}`)}
+            isInverted={isInverted}
           />
         ) : currentPage === 'info' ? (
           <InfoPage />
@@ -605,8 +524,7 @@ function App() {
                   entries={featuredProjects}
                   activeProject={activeProject}
                   setActiveProject={setActiveProject}
-                  interactionDisabled={isHomeTransitioning}
-                  onProjectOpen={openProjectFromHome}
+                  onProjectOpen={(event, projectId) => navigate(event, `/work/${projectId}`)}
                 />
               </section>
               <HomeShowcase
