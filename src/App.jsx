@@ -4,8 +4,59 @@ import { gsap } from 'gsap'
 import { featuredProjects, projects } from './data/projects/index.js'
 import './App.css'
 
-function getLosAngelesTime() {
-  return new Intl.DateTimeFormat('en-US', {
+const translations = {
+  en: {
+    nav: { work: 'work', info: 'info', contact: 'contact' },
+    home: { featured: 'featured', addImage: 'Add a project image to this entry' },
+    work: { all: 'All work', no: 'no.', title: 'title', project: 'project', year: 'year', back: 'back', addImage: 'Add a project image to this entry', addPhotos: 'Add project photos to this entry', comingSoon: 'Project description coming soon.' },
+    info: {
+      label: 'About Martin Gama Jr',
+      sections: { experience: 'experience', education: 'education', skills: 'skills', connect: 'connect' },
+      education: [
+        { school: 'University of California San Diego', degree: 'B.S Mathematics-Computer Science', years: '2024-2026' },
+        { school: 'Pasadena City College', degree: 'A.S-T Computer Science', years: '2022-2024' },
+      ],
+      experience: [
+        { organization: 'KSDT Radio', role: 'Computer Engineer / Web Developer Intern', description: 'Developed and maintained responsive front-end components using React.js and CSS to execute key website redesign initiatives for KSDT Radio. Collaborated on UI/UX improvements that modernized the digital platform, streamlined navigation, and enhanced overall listener engagement.' },
+        { organization: 'Out The Archive', role: 'Creative Space Interdisciplinary Collaborator', description: 'Collaborated within a student-led creative collective to conceptualize, style, and produce an original fashion short film from ideation to execution. Designed and showcased a custom garment look for the organization’s live runway show, blending visual storytelling with hands-on fashion design.' },
+        { organization: 'Pasadena City College', role: 'Math Tutor', description: 'Translated complex concepts into accessible, step-by-step frameworks for STEM students at Pasadena City College. Leveraged active listening and adaptable communication to diagnose learning gaps, strengthen technical fluency, and accelerate student performance.' },
+      ],
+      skills: { design: 'design', code: 'code' },
+      connect: { email: 'email', linkedin: 'linkedin', github: 'github', instagram: 'instagram' },
+    },
+    footer: { location: 'Los Angeles, California', dark: 'Switch to dark theme', light: 'Switch to light theme' },
+    viewer: { image: 'image', page: 'page', of: 'of', open: 'Open image fullscreen', previous: 'Previous image', next: 'Next image', close: 'Close fullscreen viewer' },
+  },
+  es: {
+    nav: { work: 'trabajo', info: 'info', contact: 'contacto' },
+    home: { featured: 'destacado', addImage: 'Agrega una imagen del proyecto a esta entrada' },
+    work: { all: 'Todos los proyectos', no: 'núm.', title: 'título', project: 'proyecto', year: 'año', back: 'volver', addImage: 'Agrega una imagen del proyecto a esta entrada', addPhotos: 'Agrega fotos del proyecto a esta entrada', comingSoon: 'Descripción del proyecto próximamente.' },
+    info: {
+      label: 'Acerca de Martin Gama Jr',
+      sections: { experience: 'experiencia', education: 'educación', skills: 'habilidades', connect: 'contacto' },
+      education: [
+        { school: 'University of California San Diego', degree: 'B.S. Matemáticas y Ciencias de la Computación', years: '2024-2026' },
+        { school: 'Pasadena City College', degree: 'A.S.-T. Ciencias de la Computación', years: '2022-2024' },
+      ],
+      experience: [
+        { organization: 'KSDT Radio', role: 'Practicante de Ingeniería Informática y Desarrollo Web', description: 'Desarrollé y mantuve componentes de interfaz adaptables con React.js y CSS para llevar a cabo iniciativas clave de rediseño del sitio web de KSDT Radio. Colaboré en mejoras de UI/UX que modernizaron la plataforma digital, simplificaron la navegación y mejoraron la interacción de la audiencia.' },
+        { organization: 'Out The Archive', role: 'Colaborador interdisciplinario de espacio creativo', description: 'Colaboré con un colectivo creativo dirigido por estudiantes para conceptualizar, diseñar y producir un cortometraje de moda original, desde la idea hasta su realización. Diseñé y presenté un atuendo personalizado para el desfile de la organización, combinando narrativa visual y diseño de moda práctico.' },
+        { organization: 'Pasadena City College', role: 'Tutor de matemáticas', description: 'Convertí conceptos complejos en explicaciones accesibles y paso a paso para estudiantes de áreas STEM en Pasadena City College. Usé la escucha activa y una comunicación adaptable para detectar dificultades, fortalecer sus habilidades técnicas y acelerar su progreso académico.' },
+      ],
+      skills: { design: 'diseño', code: 'programación' },
+      connect: { email: 'correo', linkedin: 'linkedin', github: 'github', instagram: 'instagram' },
+    },
+    footer: { location: 'Los Ángeles, California', dark: 'Cambiar al tema oscuro', light: 'Cambiar al tema claro' },
+    viewer: { image: 'imagen', page: 'página', of: 'de', open: 'Abrir imagen en pantalla completa', previous: 'Imagen anterior', next: 'Imagen siguiente', close: 'Cerrar pantalla completa' },
+  },
+}
+
+function getProjectText(project, field, language) {
+  return project.translations?.[language]?.[field] ?? project[field]
+}
+
+function getLosAngelesTime(language = 'en') {
+  return new Intl.DateTimeFormat(language === 'es' ? 'es-US' : 'en-US', {
     timeZone: 'America/Los_Angeles',
     hour: '2-digit',
     minute: '2-digit',
@@ -15,12 +66,14 @@ function getLosAngelesTime() {
   }).format(new Date())
 }
 
-function ThemeMark() {
+function ThemeMark({ isInverted }) {
   return (
-    <svg className="theme-mark" viewBox="0 0 34 34" aria-hidden="true">
-      <circle className="theme-mark__outer" cx="17" cy="17" r="16.5" />
-      <circle className="theme-mark__inner" cx="17" cy="17" r="10.5" />
-      <path className="theme-mark__fill" d="M17 6.5a10.5 10.5 0 0 1 0 21V6.5Z" />
+    <svg className={`theme-mark${isInverted ? ' theme-mark--inverted' : ''}`} viewBox="0 0 52 28" aria-hidden="true">
+      <rect className="theme-mark__outer" x="0.5" y="0.5" width="51" height="27" rx="13.5" />
+      <g className="theme-mark__thumb">
+        <circle className="theme-mark__inner" cx="14" cy="14" r="8.5" />
+        <path className="theme-mark__fill" d="M14 5.5a8.5 8.5 0 0 1 0 17V5.5Z" />
+      </g>
     </svg>
   )
 }
@@ -37,11 +90,12 @@ function getProjectFromRoute() {
   return page === 'work' ? projectId : undefined
 }
 
-function ProjectRows({ entries, activeProject, setActiveProject, onProjectOpen, interactionDisabled = false }) {
+function ProjectRows({ entries, activeProject, setActiveProject, onProjectOpen, interactionDisabled = false, language = 'en' }) {
   return (
     <div className="work-list">
       {entries.map((project) => {
         const isActive = activeProject === project.id
+        const category = getProjectText(project, 'project', language)
         return (
           <button
             className={`work-row${isActive ? ' work-row--active' : ''}`}
@@ -59,7 +113,7 @@ function ProjectRows({ entries, activeProject, setActiveProject, onProjectOpen, 
           >
             <span className="work-row__number">{project.id}</span>
             <span className="work-row__client">{project.client}</span>
-            <span className="work-row__category">{project.project}</span>
+            <span className="work-row__category">{category}</span>
             <span className="work-row__year">{project.year}</span>
             <span className="work-row__marker" aria-hidden="true">{isActive ? '<' : ''}</span>
           </button>
@@ -69,7 +123,7 @@ function ProjectRows({ entries, activeProject, setActiveProject, onProjectOpen, 
   )
 }
 
-function HomeShowcase({ project, onProjectOpen }) {
+function HomeShowcase({ project, onProjectOpen, language }) {
   if (!project) return null
 
   const href = `${import.meta.env.BASE_URL}#/work/${project.id}`
@@ -77,19 +131,19 @@ function HomeShowcase({ project, onProjectOpen }) {
     <a
       className={`home-preview${project.image ? '' : ' home-preview--missing'}`}
       href={href}
-      aria-label={`Open ${project.client} project`}
+      aria-label={`${language === 'es' ? 'Abrir el proyecto' : 'Open'} ${project.client}`}
       onClick={(event) => onProjectOpen(event, project.id)}
     >
       {project.image ? (
         <img className="home-preview__image" src={project.image} alt={project.imageAlt || `${project.client} project`} />
       ) : (
-        <span className="home-preview__fallback">Add a project image to this entry</span>
+        <span className="home-preview__fallback">{translations[language].home.addImage}</span>
       )}
     </a>
   )
 }
 
-function ProjectCarousel({ project, isInverted }) {
+function ProjectCarousel({ project, isInverted, language = 'en' }) {
   const pages = project.pages?.length ? project.pages : project.image ? [project.image] : []
   const [pageIndex, setPageIndex] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -119,7 +173,7 @@ function ProjectCarousel({ project, isInverted }) {
   }, [isFullscreen, pages.length])
 
   if (!pages.length) {
-    return <div className="project-detail__image project-detail__image--missing">Add a project image to this entry</div>
+    return <div className="project-detail__image project-detail__image--missing">{translations[language].work.addImage}</div>
   }
 
   const setRelativePage = (offset) => {
@@ -127,7 +181,7 @@ function ProjectCarousel({ project, isInverted }) {
   }
   const currentPage = pages[pageIndex]
   const pageAlt = pages.length > 1
-    ? `${project.client} ${project.project.toLowerCase()} page ${pageIndex + 1} of ${pages.length}`
+    ? `${project.client} ${getProjectText(project, 'project', language).toLowerCase()} ${translations[language].viewer.page} ${pageIndex + 1} ${translations[language].viewer.of} ${pages.length}`
     : project.imageAlt || `${project.client} project`
   const counter = `${String(pageIndex + 1).padStart(2, '0')} / ${String(pages.length).padStart(2, '0')}`
   const imageClass = `project-carousel__image${pages.length > 1 ? ' project-carousel__image--multiple' : ''}`
@@ -135,13 +189,13 @@ function ProjectCarousel({ project, isInverted }) {
   return (
     <div className={`project-carousel${pages.length > 1 ? ' project-carousel--multiple' : ''}`}>
       <div className={`project-carousel__stage${pages.length > 1 ? ' project-carousel__stage--multiple' : ''}`}>
-        <button className="project-carousel__open" type="button" onClick={() => setIsFullscreen(true)} aria-label={`Open ${project.client} image fullscreen`}>
+        <button className="project-carousel__open" type="button" onClick={() => setIsFullscreen(true)} aria-label={`${translations[language].viewer.open}: ${project.client}`}>
           <img className={imageClass} src={currentPage} alt={pageAlt} />
         </button>
         {pages.length > 1 && (
           <>
-            <button className="project-carousel__arrow project-carousel__arrow--previous" type="button" onClick={() => setRelativePage(-1)} aria-label="Previous page">‹</button>
-            <button className="project-carousel__arrow project-carousel__arrow--next" type="button" onClick={() => setRelativePage(1)} aria-label="Next page">›</button>
+            <button className="project-carousel__arrow project-carousel__arrow--previous" type="button" onClick={() => setRelativePage(-1)} aria-label={translations[language].viewer.previous}>‹</button>
+            <button className="project-carousel__arrow project-carousel__arrow--next" type="button" onClick={() => setRelativePage(1)} aria-label={translations[language].viewer.next}>›</button>
           </>
         )}
       </div>
@@ -150,13 +204,13 @@ function ProjectCarousel({ project, isInverted }) {
         <div className={`project-lightbox${isInverted ? ' project-lightbox--inverted' : ''}${pages.length === 1 ? ' project-lightbox--single' : ''}`} role="dialog" aria-modal="true" aria-label={`${project.client} image viewer`} onClick={(event) => {
           if (event.target === event.currentTarget) setIsFullscreen(false)
         }}>
-          <button className="project-lightbox__close" type="button" onClick={() => setIsFullscreen(false)} aria-label="Close fullscreen viewer">×</button>
-          {pages.length > 1 && <button className="project-lightbox__arrow" type="button" onClick={() => setRelativePage(-1)} aria-label="Previous page">‹</button>}
+          <button className="project-lightbox__close" type="button" onClick={() => setIsFullscreen(false)} aria-label={translations[language].viewer.close}>×</button>
+          {pages.length > 1 && <button className="project-lightbox__arrow" type="button" onClick={() => setRelativePage(-1)} aria-label={translations[language].viewer.previous}>‹</button>}
           <figure className="project-lightbox__figure">
             <img className="project-lightbox__image" src={currentPage} alt={pageAlt} />
             {pages.length > 1 && <figcaption>{counter}</figcaption>}
           </figure>
-          {pages.length > 1 && <button className="project-lightbox__arrow" type="button" onClick={() => setRelativePage(1)} aria-label="Next page">›</button>}
+          {pages.length > 1 && <button className="project-lightbox__arrow" type="button" onClick={() => setRelativePage(1)} aria-label={translations[language].viewer.next}>›</button>}
         </div>,
         document.body,
       )}
@@ -164,7 +218,7 @@ function ProjectCarousel({ project, isInverted }) {
   )
 }
 
-function ProjectMasonry({ project, isInverted }) {
+function ProjectMasonry({ project, isInverted, language = 'en' }) {
   const images = project.gallery || []
   const [selectedIndex, setSelectedIndex] = useState(null)
   const isOpen = selectedIndex !== null
@@ -194,7 +248,7 @@ function ProjectMasonry({ project, isInverted }) {
   }, [isOpen, images.length])
 
   if (!images.length) {
-    return <div className="project-detail__image project-detail__image--missing">Add project photos to this entry</div>
+    return <div className="project-detail__image project-detail__image--missing">{translations[language].work.addPhotos}</div>
   }
 
   const selectedImage = isOpen ? images[selectedIndex] : null
@@ -213,7 +267,7 @@ function ProjectMasonry({ project, isInverted }) {
           type="button"
           key={image.src}
           onClick={() => setSelectedIndex(index)}
-          aria-label={`Open image ${index + 1} of ${images.length} from ${project.client}`}
+          aria-label={`${translations[language].viewer.open} ${index + 1} ${translations[language].viewer.of} ${images.length} ${project.client}`}
         >
           <img src={image.src} alt={image.alt} loading={index > 1 ? 'lazy' : 'eager'} />
         </button>
@@ -222,13 +276,13 @@ function ProjectMasonry({ project, isInverted }) {
         <div className={`project-lightbox${isInverted ? ' project-lightbox--inverted' : ''}`} role="dialog" aria-modal="true" aria-label={`${project.client} photo viewer`} onClick={(event) => {
           if (event.target === event.currentTarget) setSelectedIndex(null)
         }}>
-          <button className="project-lightbox__close" type="button" onClick={() => setSelectedIndex(null)} aria-label="Close fullscreen viewer">×</button>
-          <button className="project-lightbox__arrow" type="button" onClick={() => moveSelection(-1)} aria-label="Previous image">‹</button>
+          <button className="project-lightbox__close" type="button" onClick={() => setSelectedIndex(null)} aria-label={translations[language].viewer.close}>×</button>
+          <button className="project-lightbox__arrow" type="button" onClick={() => moveSelection(-1)} aria-label={translations[language].viewer.previous}>‹</button>
           <figure className="project-lightbox__figure">
             <img className="project-lightbox__image" src={selectedImage.src} alt={selectedImage.alt} />
             <figcaption>{counter}</figcaption>
           </figure>
-          <button className="project-lightbox__arrow" type="button" onClick={() => moveSelection(1)} aria-label="Next image">›</button>
+          <button className="project-lightbox__arrow" type="button" onClick={() => moveSelection(1)} aria-label={translations[language].viewer.next}>›</button>
         </div>,
         document.body,
       )}
@@ -236,15 +290,19 @@ function ProjectMasonry({ project, isInverted }) {
   )
 }
 
-function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectOpen, isInverted }) {
+function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectOpen, onBack, isInverted, language = 'en' }) {
   const visibleDetailProjectId = routeProjectId || null
 
   const detailProject = projects.find((project) => project.id === visibleDetailProjectId)
+  const projectCategory = detailProject ? getProjectText(detailProject, 'project', language) : ''
+  const projectDescription = detailProject
+    ? getProjectText(detailProject, 'description', language) || translations[language].work.comingSoon
+    : ''
 
   return (
     <section
       className={`work-page${detailProject ? ' work-page--detail' : ''}${detailProject?.gallery?.length ? ' work-page--detail-gallery' : ''}`}
-      aria-label={detailProject ? `${detailProject.client} project` : 'All work'}
+      aria-label={detailProject ? `${detailProject.client} ${translations[language].work.project}` : translations[language].work.all}
     >
       {detailProject ? (
         <>
@@ -252,24 +310,32 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectOp
             <div key="project-metadata" className="project-detail__metadata" data-project-id={detailProject.id}>
               <span className="project-detail__index">{detailProject.id}</span>
               <span className="project-detail__title">{detailProject.client}</span>
-              <span className="project-detail__category">{detailProject.project}</span>
+              <span className="project-detail__category">{projectCategory}</span>
               <span className="project-detail__year">{detailProject.year}</span>
             </div>
-            <p className="project-detail__description">{detailProject.description || 'Project description coming soon.'}</p>
+            <p className="project-detail__description">{projectDescription}</p>
+            {detailProject.externalLink && (
+              <a className="project-detail__external-link" href={detailProject.externalLink} target="_blank" rel="noreferrer">
+                {detailProject.externalLink.replace(/^https?:\/\//, '').replace(/\/+$/, '')}
+              </a>
+            )}
+            <button className="project-detail__back" type="button" onClick={onBack}>
+              {'< '}{translations[language].work.back}
+            </button>
           </div>
           <div className="project-detail__media">
             {detailProject.gallery?.length
-              ? <ProjectMasonry key={detailProject.id} project={detailProject} isInverted={isInverted} />
-              : <ProjectCarousel key={detailProject.id} project={detailProject} isInverted={isInverted} />}
+              ? <ProjectMasonry key={detailProject.id} project={detailProject} isInverted={isInverted} language={language} />
+              : <ProjectCarousel key={detailProject.id} project={detailProject} isInverted={isInverted} language={language} />}
           </div>
         </>
       ) : (
         <div className="work-page__index">
           <div key="project-columns" className="project-columns" aria-hidden="true">
-            <span>no.</span>
-            <span>title</span>
-            <span>project</span>
-            <span>year</span>
+            <span>{translations[language].work.no}</span>
+            <span>{translations[language].work.title}</span>
+            <span>{translations[language].work.project}</span>
+            <span>{translations[language].work.year}</span>
             <span />
           </div>
           <ProjectRows
@@ -277,6 +343,7 @@ function WorkPage({ activeProject, setActiveProject, routeProjectId, onProjectOp
             activeProject={activeProject}
             setActiveProject={setActiveProject}
             onProjectOpen={onProjectOpen}
+            language={language}
           />
         </div>
       )}
@@ -308,13 +375,14 @@ function ExperienceEntry({ organization, role, children }) {
   )
 }
 
-function InfoPage() {
+function InfoPage({ language = 'en' }) {
   const [activeSection, setActiveSection] = useState('experience')
   const [isMenuHovered, setIsMenuHovered] = useState(false)
+  const content = translations[language].info
   const sectionNames = ['experience', 'education', 'skills', 'connect']
 
   return (
-    <section className="info-page" aria-label="About Martin Gama Jr">
+    <section className="info-page" aria-label={content.label}>
       <div className="info-overview">
         <nav className={`info-nav${isMenuHovered ? ' info-nav--hovering' : ''}`} aria-label="Info sections">
           <div className="info-nav__list" onPointerLeave={() => setIsMenuHovered(false)}>
@@ -333,7 +401,7 @@ function InfoPage() {
                   }}
                   onFocus={() => setActiveSection(name)}
                 >
-                  <span>{name}</span>
+                  <span>{content.sections[name]}</span>
                   <span className="info-nav__marker" aria-hidden="true">{'<'}</span>
                 </button>
               )
@@ -344,40 +412,35 @@ function InfoPage() {
         <div className="info-panel" aria-live="polite">
           {activeSection === 'education' && (
             <div className="education-list">
-              <EducationEntry school="University of California San Diego" degree="B.S Mathematics-Computer Science" years="2024-2026" />
-              <EducationEntry school="Pasadena City College" degree="A.S-T Computer Science" years="2022-2024" />
+              {content.education.map((entry) => <EducationEntry key={entry.school} {...entry} />)}
             </div>
           )}
           {activeSection === 'experience' && (
             <div className="experience-list">
-              <ExperienceEntry organization="KSDT Radio" role="Computer Engineer / Web Developer Intern">
-                Developed and maintained responsive front-end components using React.js and CSS to execute key website redesign initiatives for KSDT Radio. Collaborated on UI/UX improvements that modernized the digital platform, streamlined navigation, and enhanced overall listener engagement.
-              </ExperienceEntry>
-              <ExperienceEntry organization="Out The Archive" role="Creative Space Interdisciplinary Collaborator">
-                Collaborated within a student-led creative collective to conceptualize, style, and produce an original fashion short film from ideation to execution. Designed and showcased a custom garment look for the organization’s live runway show, blending visual storytelling with hands-on fashion design.
-              </ExperienceEntry>
-              <ExperienceEntry organization="Pasadena City College" role="Math Tutor">
-                Translated complex concepts into accessible, step-by-step frameworks for STEM students at Pasadena City College. Leveraged active listening and adaptable communication to diagnose learning gaps, strengthen technical fluency, and accelerate student performance.
-              </ExperienceEntry>
+              {content.experience.map((entry) => (
+                <ExperienceEntry key={`${entry.organization}-${entry.role}`} organization={entry.organization} role={entry.role}>
+                  {entry.description}
+                </ExperienceEntry>
+              ))}
             </div>
           )}
           {activeSection === 'skills' && (
             <dl className="info-pairs">
-              <dt>design</dt>
+              <dt>{content.skills.design}</dt>
               <dd>Figma, Affinity Designer, TouchDesigner</dd>
-              <dt>code</dt>
+              <dt>{content.skills.code}</dt>
               <dd>HTML, CSS, Python, C++, ReactJS, Git, LaTeX</dd>
             </dl>
           )}
           {activeSection === 'connect' && (
             <dl className="info-pairs info-pairs--connect">
-              <dt>email</dt>
+              <dt>{content.connect.email}</dt>
               <dd><a href="mailto:martingama2100@gmail.com">martingama2100@gmail.com</a></dd>
-              <dt>linkedin</dt>
+              <dt>{content.connect.linkedin}</dt>
               <dd><a href="https://www.linkedin.com/in/jrmartingama/" target="_blank" rel="noreferrer">jrmartingama</a></dd>
-              <dt>github</dt>
+              <dt>{content.connect.github}</dt>
               <dd><a href="https://github.com/marzsh11" target="_blank" rel="noreferrer">marzsh11</a></dd>
-              <dt>instagram</dt>
+              <dt>{content.connect.instagram}</dt>
               <dd><a href="https://www.instagram.com/icedlattepounder/" target="_blank" rel="noreferrer">icedlattepounder</a></dd>
             </dl>
           )}
@@ -389,8 +452,9 @@ function InfoPage() {
 }
 
 function App() {
-  const [time, setTime] = useState(getLosAngelesTime)
-  const [isInverted, setIsInverted] = useState(false)
+  const [language, setLanguage] = useState(() => window.localStorage.getItem('portfolio-language') === 'es' ? 'es' : 'en')
+  const [time, setTime] = useState(() => getLosAngelesTime(language))
+  const [isInverted, setIsInverted] = useState(() => window.localStorage.getItem('portfolio-theme') === 'light')
   const [isContactExpanded, setIsContactExpanded] = useState(false)
   const [activeProject, setActiveProject] = useState(() => getProjectFromRoute() || '000')
   const [currentPage, setCurrentPage] = useState(getCurrentPage)
@@ -402,9 +466,15 @@ function App() {
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => setTime(getLosAngelesTime()), 1000)
+    document.documentElement.lang = language
+    window.localStorage.setItem('portfolio-language', language)
+    const intervalId = window.setInterval(() => setTime(getLosAngelesTime(language)), 1000)
     return () => window.clearInterval(intervalId)
-  }, [])
+  }, [language])
+
+  useEffect(() => {
+    window.localStorage.setItem('portfolio-theme', isInverted ? 'light' : 'dark')
+  }, [isInverted])
 
   useLayoutEffect(() => {
     if (!pageFadeInPendingRef.current) return
@@ -473,15 +543,16 @@ function App() {
   const homeHref = `${import.meta.env.BASE_URL}#/`
   const workHref = `${import.meta.env.BASE_URL}#/work`
   const infoHref = `${import.meta.env.BASE_URL}#/info`
+  const copy = translations[language]
 
   return (
     <main className={`portfolio${isInverted ? ' portfolio--inverted' : ''}`}>
       <header className="site-header">
-        <a className="brand" href={homeHref} onClick={(event) => navigate(event, '/')} aria-label="Martin Gama Jr home">Martin Gama Jr</a>
+        <a className="brand" href={homeHref} onClick={(event) => navigate(event, '/')} aria-label={`Martin Gama Jr ${language === 'es' ? 'inicio' : 'home'}`}>Martin Gama Jr</a>
         <div className="header-actions">
           <nav className="primary-nav" aria-label="Main navigation">
-            <a href={workHref} onClick={(event) => navigate(event, '/work')} aria-current={currentPage === 'work' ? 'page' : undefined}>work</a>
-            <a href={infoHref} onClick={(event) => navigate(event, '/info')} aria-current={currentPage === 'info' ? 'page' : undefined}>info</a>
+            <a href={workHref} onClick={(event) => navigate(event, '/work')} aria-current={currentPage === 'work' ? 'page' : undefined}>{copy.nav.work}</a>
+            <a href={infoHref} onClick={(event) => navigate(event, '/info')} aria-current={currentPage === 'info' ? 'page' : undefined}>{copy.nav.info}</a>
           </nav>
           <a
             className="contact"
@@ -491,7 +562,7 @@ function App() {
             onFocus={() => setIsContactExpanded(true)}
             onBlur={() => setIsContactExpanded(false)}
           >
-            <span className="contact__text">{isContactExpanded ? 'martingama2100@gmail.com' : 'contact'}</span>
+            <span className="contact__text">{isContactExpanded ? 'martingama2100@gmail.com' : copy.nav.contact}</span>
           </a>
         </div>
       </header>
@@ -503,21 +574,23 @@ function App() {
             setActiveProject={setActiveProject}
             routeProjectId={getProjectFromRoute()}
             onProjectOpen={(event, projectId) => navigate(event, `/work/${projectId}`)}
+            onBack={(event) => navigate(event, '/work')}
             isInverted={isInverted}
+            language={language}
           />
         ) : currentPage === 'info' ? (
-          <InfoPage />
+          <InfoPage language={language} />
         ) : (
           <>
             <p className="brand-description">
-              is a Mexican-American 
-              multimedia creative / web developer<br />
-              based out of Los Angeles County.
+              {language === 'es'
+                ? <>es un creativo multimedia mexicano-estadounidense / desarrollador web<br />con sede en el condado de Los Ángeles.</>
+                : <>is a Mexican-American multimedia creative / web developer<br />based out of Los Angeles County.</>}
             </p>
             <div className="home-hero">
-              <section className="featured-work" aria-label="Featured work">
+              <section className="featured-work" aria-label={copy.home.featured}>
                 <div className="featured-heading">
-                  <span>featured</span>
+                  <span>{copy.home.featured}</span>
                   <span className="featured-toggle__rule" aria-hidden="true" />
                 </div>
                 <ProjectRows
@@ -525,11 +598,13 @@ function App() {
                   activeProject={activeProject}
                   setActiveProject={setActiveProject}
                   onProjectOpen={(event, projectId) => navigate(event, `/work/${projectId}`)}
+                  language={language}
                 />
               </section>
               <HomeShowcase
                 project={featuredProjects.find((project) => project.id === activeProject) || featuredProjects[0]}
                 onProjectOpen={(event, projectId) => navigate(event, `/work/${projectId}`)}
+                language={language}
               />
             </div>
           </>
@@ -539,18 +614,22 @@ function App() {
 
       <footer className="site-footer">
         <div className="footer-meta">
-          <span>Los Angeles, California</span>
+          <span>{copy.footer.location}</span>
           <time>{time}</time>
+        </div>
+        <div className="footer-language" role="group" aria-label={language === 'es' ? 'Idioma' : 'Language'}>
+          <button className={language === 'en' ? 'footer-language__active' : ''} type="button" aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>en</button>
+          <span aria-hidden="true">/</span>
+          <button className={language === 'es' ? 'footer-language__active' : ''} type="button" aria-pressed={language === 'es'} onClick={() => setLanguage('es')}>es</button>
         </div>
         <button
           className="theme-toggle"
           type="button"
-          aria-label={isInverted ? 'Switch to dark theme' : 'Switch to light theme'}
+          aria-label={isInverted ? copy.footer.dark : copy.footer.light}
           aria-pressed={isInverted}
           onClick={() => setIsInverted((current) => !current)}
         >
-          <span>click to toggle</span>
-          <ThemeMark />
+          <ThemeMark isInverted={isInverted} />
         </button>
       </footer>
     </main>
