@@ -584,8 +584,8 @@ function App() {
           <>
             <p className="brand-description">
               {language === 'es'
-                ? <>es un creativo multimedia mexicano-estadounidense / desarrollador web<br />con sede en el condado de Los Ángeles.</>
-                : <>is a Mexican-American multimedia creative / web developer<br />based out of Los Angeles County.</>}
+                ? <>es un creativo multimedia mexicano-estadounidense / desarrollador full stack<br />ubicado en el condado de Los Ángeles.</>
+                : <>is a Mexican-American multimedia creative / full stack developer<br />based out of Los Angeles County.</>}
             </p>
             <div className="home-hero">
               <section className="featured-work" aria-label={copy.home.featured}>
