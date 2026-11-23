@@ -940,6 +940,8 @@
   }
   .info-panel .experience-list { width: min(82vw, 32rem); }
 
+  .page-content--work-detail { --mobile-media-gutter: clamp(0.5rem, 2.5vw, 0.75rem); }
+
   .page-content--work-detail:not(:has(.work-page--detail-gallery)) {
     overflow: visible;
   }
@@ -950,9 +952,9 @@
 
   .page-content--work-detail:not(:has(.work-page--detail-gallery)) .project-detail__media {
     justify-self: start;
-    width: 100vw;
+    width: calc(100vw - var(--mobile-media-gutter) - var(--mobile-media-gutter));
     max-height: 70svh;
-    margin-left: calc(50% - 50vw);
+    margin-left: calc(50% - 50vw + var(--mobile-media-gutter));
     overflow: visible;
   }
 
@@ -965,6 +967,7 @@
   .project-lightbox__figure {
     width: 100vw;
     height: 100svh;
+    align-items: center;
     gap: 0;
   }
 
@@ -1012,10 +1015,10 @@
 
   .work-page--detail-gallery .project-detail__media {
     justify-self: start;
-    width: 100vw;
+    width: calc(100vw - var(--mobile-media-gutter) - var(--mobile-media-gutter));
     height: auto;
     max-height: none;
-    margin-left: calc(50% - 50vw);
+    margin-left: calc(50% - 50vw + var(--mobile-media-gutter));
     overflow: visible;
   }
 
