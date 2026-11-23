@@ -202,12 +202,12 @@ function ProjectCarousel({ project, isInverted, language = 'en' }) {
           if (event.target === event.currentTarget) setIsFullscreen(false)
         }}>
           <button className="project-lightbox__close" type="button" onClick={() => setIsFullscreen(false)} aria-label={translations[language].viewer.close}>×</button>
-          {pages.length > 1 && <button className="project-lightbox__arrow" type="button" onClick={() => setRelativePage(-1)} aria-label={translations[language].viewer.previous}>‹</button>}
+          {pages.length > 1 && <button className="project-lightbox__arrow project-lightbox__arrow--previous" type="button" onClick={() => setRelativePage(-1)} aria-label={translations[language].viewer.previous}>‹</button>}
           <figure className="project-lightbox__figure">
             <img className="project-lightbox__image" src={currentPage} alt={pageAlt} />
             {pages.length > 1 && <figcaption>{counter}</figcaption>}
           </figure>
-          {pages.length > 1 && <button className="project-lightbox__arrow" type="button" onClick={() => setRelativePage(1)} aria-label={translations[language].viewer.next}>›</button>}
+          {pages.length > 1 && <button className="project-lightbox__arrow project-lightbox__arrow--next" type="button" onClick={() => setRelativePage(1)} aria-label={translations[language].viewer.next}>›</button>}
         </div>,
         document.body,
       )}
@@ -274,12 +274,12 @@ function ProjectMasonry({ project, isInverted, language = 'en' }) {
           if (event.target === event.currentTarget) setSelectedIndex(null)
         }}>
           <button className="project-lightbox__close" type="button" onClick={() => setSelectedIndex(null)} aria-label={translations[language].viewer.close}>×</button>
-          <button className="project-lightbox__arrow" type="button" onClick={() => moveSelection(-1)} aria-label={translations[language].viewer.previous}>‹</button>
+          <button className="project-lightbox__arrow project-lightbox__arrow--previous" type="button" onClick={() => moveSelection(-1)} aria-label={translations[language].viewer.previous}>‹</button>
           <figure className="project-lightbox__figure">
             <img className="project-lightbox__image" src={selectedImage.src} alt={selectedImage.alt} />
             <figcaption>{counter}</figcaption>
           </figure>
-          <button className="project-lightbox__arrow" type="button" onClick={() => moveSelection(1)} aria-label={translations[language].viewer.next}>›</button>
+          <button className="project-lightbox__arrow project-lightbox__arrow--next" type="button" onClick={() => moveSelection(1)} aria-label={translations[language].viewer.next}>›</button>
         </div>,
         document.body,
       )}
