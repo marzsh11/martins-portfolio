@@ -68,13 +68,10 @@ function getLosAngelesTime(language = 'en') {
 
 function ThemeMark({ isInverted }) {
   return (
-    <svg className={`theme-mark${isInverted ? ' theme-mark--inverted' : ''}`} viewBox="0 0 52 28" aria-hidden="true">
-      <rect className="theme-mark__outer" x="0.5" y="0.5" width="51" height="27" rx="13.5" />
-      <g className="theme-mark__thumb">
-        <circle className="theme-mark__inner" cx="14" cy="14" r="8.5" />
-        <path className="theme-mark__fill" d="M14 5.5a8.5 8.5 0 0 1 0 17V5.5Z" />
-      </g>
-    </svg>
+    <span className={`theme-mark${isInverted ? ' theme-mark--inverted' : ''}`} aria-hidden="true">
+      <span className="theme-mark__disc theme-mark__disc--solid" />
+      <span className="theme-mark__disc theme-mark__disc--outline" />
+    </span>
   )
 }
 
@@ -377,29 +374,29 @@ function ExperienceEntry({ organization, role, children }) {
 
 function InfoPage({ language = 'en' }) {
   const [activeSection, setActiveSection] = useState('experience')
-  const [isMenuHovered, setIsMenuHovered] = useState(false)
+  const [hoveredSection, setHoveredSection] = useState(null)
   const content = translations[language].info
   const sectionNames = ['experience', 'education', 'skills', 'connect']
 
   return (
     <section className="info-page" aria-label={content.label}>
       <div className="info-overview">
-        <nav className={`info-nav${isMenuHovered ? ' info-nav--hovering' : ''}`} aria-label="Info sections">
-          <div className="info-nav__list" onPointerLeave={() => setIsMenuHovered(false)}>
+        <nav
+          className={`info-nav${hoveredSection ? ' info-nav--hovering' : ''}`}
+          aria-label="Info sections"
+          onPointerLeave={() => setHoveredSection(null)}
+        >
+          <div className="info-nav__list">
             {sectionNames.map((name) => {
               const isActive = activeSection === name
               return (
                 <button
-                  className={`info-nav__item${isActive ? ' info-nav__item--active' : ''}`}
+                  className={`info-nav__item${isActive ? ' info-nav__item--active' : ''}${hoveredSection === name ? ' info-nav__item--hovered' : ''}`}
                   type="button"
                   key={name}
                   aria-current={isActive ? 'true' : undefined}
                   onClick={() => setActiveSection(name)}
-                  onPointerEnter={() => {
-                    setActiveSection(name)
-                    setIsMenuHovered(true)
-                  }}
-                  onFocus={() => setActiveSection(name)}
+                  onPointerEnter={() => setHoveredSection(name)}
                 >
                   <span>{content.sections[name]}</span>
                   <span className="info-nav__marker" aria-hidden="true">{'<'}</span>
@@ -584,8 +581,8 @@ function App() {
           <>
             <p className="brand-description">
               {language === 'es'
-                ? <>es un creativo multimedia mexicano-estadounidense / desarrollador full stack<br />ubicado en el condado de Los Ángeles.</>
-                : <>is a Mexican-American multimedia creative / full stack developer<br />based out of Los Angeles County.</>}
+                ? <>es un creativo multimedia mexicano-estadounidense / <span className="brand-description__role">desarrollador full stack</span><br />ubicado en el condado de Los Ángeles.</>
+                : <>is a Mexican-American multimedia creative / <span className="brand-description__role">full stack developer</span><br />based out of Los Angeles County.</>}
             </p>
             <div className="home-hero">
               <section className="featured-work" aria-label={copy.home.featured}>

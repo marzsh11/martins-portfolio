@@ -20,7 +20,7 @@ export default {
   image: page01,
   imageAlt: 'The Open Studio Issue 0 zine cover with green apples',
   pages,
-  description: 'The Open Studio is an artist showcase zine I helped build from initial concept to physical product, designed to create a living space that fosters ongoing conversations about art. My role spanned creative direction, editorial, production, writer assessments, graphic design guidance, and maintaining a cohesive brand identity and voice. I coordinated artist outreach and conducted 1+ hour comprehensive interviews to highlight selected works and give artists a platform for their voices. Additionally, I developed deliberate page layouts tailored to balance each artist’s visual work with their interviews, finishing the zine on gloss and matte paper then hand binding.',
+  description: 'The Open Studio is an artistic zine I helped build from conceptualization to final product. It was designed to create a space that generates artistic conversations. I took on a multitude of responsibilities such as creative direction, editing, production, writing assessment, graphic design. I reached out to undergraduate artists from a multitude of disciplines to conduct comprehensive interviews regarding their work. These interviews became the foundation of The Open Studio’s brand identity: a platform that amplifies a multitude of diverse artistic processes and individuals. Finalizing the zine on gloss and matte paper followed by hand binding.',
   translations: {
     es: {
       project: 'Fanzine',
