@@ -424,7 +424,7 @@ function InfoPage({ language = 'en' }) {
           {activeSection === 'skills' && (
             <dl className="info-pairs">
               <dt>{content.skills.design}</dt>
-              <dd>Figma, Affinity Designer, TouchDesigner</dd>
+              <dd>Figma, Affinity Designer, TouchDesigner, Garment Pattern Making/Construction</dd>
               <dt>{content.skills.code}</dt>
               <dd>HTML, CSS, Python, C++, ReactJS, Git, LaTeX</dd>
             </dl>
