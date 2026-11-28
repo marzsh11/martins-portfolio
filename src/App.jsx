@@ -75,15 +75,30 @@ function ThemeMark({ isInverted }) {
   )
 }
 
+function getRoutePath() {
+  const basePath = import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL.replace(/\/$/, '')
+  let pathname = window.location.pathname
+  if (basePath && pathname.startsWith(basePath)) pathname = pathname.slice(basePath.length)
+  const route = pathname.replace(/^\/+|\/+$/g, '')
+  if (route) return route
+  // Keep previously shared hash URLs working and migrate them to clean paths.
+  return window.location.hash.replace(/^#\/?/, '').replace(/\/+$/, '')
+}
+
+function getRouteUrl(path) {
+  const route = path.replace(/^\/+|\/+$/g, '')
+  return route ? `${import.meta.env.BASE_URL}${route}` : import.meta.env.BASE_URL
+}
+
 function getCurrentPage() {
-  const route = window.location.hash.replace(/^#\/?/, '').replace(/\/+$/, '')
+  const route = getRoutePath()
   const page = route.split('/')[0]
   if (page === 'work' || page === 'info') return page
   return 'home'
 }
 
 function getProjectFromRoute() {
-  const [, page, projectId] = window.location.hash.match(/^#\/?([^/]+)(?:\/([^/]+))?/) || []
+  const [page, projectId] = getRoutePath().split('/')
   return page === 'work' ? projectId : undefined
 }
 
@@ -123,7 +138,7 @@ function ProjectRows({ entries, activeProject, setActiveProject, onProjectOpen, 
 function HomeShowcase({ project, onProjectOpen, language }) {
   if (!project) return null
 
-  const href = `${import.meta.env.BASE_URL}#/work/${project.id}`
+  const href = getRouteUrl(`/work/${project.id}`)
   return (
     <a
       className={`home-preview${project.image ? '' : ' home-preview--missing'}`}
@@ -470,6 +485,11 @@ function App() {
   }, [language])
 
   useEffect(() => {
+    if (!window.location.hash.startsWith('#/')) return
+    window.history.replaceState({}, '', getRouteUrl(window.location.hash.replace(/^#\/?/, '')))
+  }, [])
+
+  useEffect(() => {
     window.localStorage.setItem('portfolio-theme', isInverted ? 'light' : 'dark')
   }, [isInverted])
 
@@ -507,8 +527,8 @@ function App() {
   function navigate(event, path) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
-    const destination = `${import.meta.env.BASE_URL}#${path}`
-    if (window.location.hash === `#${path}` || pageTransitionGuardRef.current) return
+    const destination = getRouteUrl(path)
+    if ((getRoutePath() === path.replace(/^\/+|\/+$/g, '') && !window.location.hash) || pageTransitionGuardRef.current) return
 
     pageTransitionGuardRef.current = true
     setIsPageTransitioning(true)
@@ -537,9 +557,9 @@ function App() {
     })
   }
 
-  const homeHref = `${import.meta.env.BASE_URL}#/`
-  const workHref = `${import.meta.env.BASE_URL}#/work`
-  const infoHref = `${import.meta.env.BASE_URL}#/info`
+  const homeHref = getRouteUrl('/')
+  const workHref = getRouteUrl('/work')
+  const infoHref = getRouteUrl('/info')
   const copy = translations[language]
 
   return (
